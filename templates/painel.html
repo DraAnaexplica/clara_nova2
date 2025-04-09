@@ -5,101 +5,92 @@
     <title>Painel de Controle - Tokens</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            padding: 2rem;
-            background-color: #f8f9fa;
-        }
-        .table td, .table th {
-            vertical-align: middle;
-        }
-        .token-inputs {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        .token-inputs input {
-            flex: 1;
-        }
-        .btn-copy {
-            margin-left: 0.5rem;
-            font-size: 0.875rem;
-        }
-        .status-ativo {
-            color: #28a745;
-            font-weight: bold;
-        }
-        .status-inativo {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .acoes-wrapper {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        form.delete-form {
-            display: inline;
-        }
-        .fade-out {
-            transition: opacity 0.5s ease-out;
-        }
+        body { padding: 2rem; background-color: #f8f9fa; }
+        .table td, .table th { vertical-align: middle; font-size: 0.9rem; } /* Diminuí fonte da tabela */
+        .token-inputs { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .token-inputs input { flex: 1; }
+        .btn-copy { margin-left: 0.5rem; font-size: 0.8rem; padding: 0.1rem 0.4rem; } /* Botão copiar menor */
+        .status-ativo { color: #198754; font-weight: bold; } /* Verde bootstrap */
+        .status-inativo { color: #dc3545; font-weight: bold; } /* Vermelho bootstrap */
+        .acoes-wrapper { display: flex; gap: 0.5rem; align-items: center; }
+        form.delete-form { display: inline; }
+        .fade-out { transition: opacity 0.5s ease-out; }
+        code { font-size: 0.8rem; } /* Diminuí fonte do token */
+        .alert { display: flex; justify-content: space-between; align-items: center; } /* Alinha botão copiar no alert */
+        .form-control-sm { max-width: 150px; } /* Limita largura input data */
     </style>
 </head>
 <body>
 <div class="container">
-    <h2 class="mb-4">Painel de Controle - Tokens</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Painel de Controle - Tokens</h2>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Sair</a> </div>
+
 
     <form method="POST" class="token-inputs">
-        <input type="text" name="user_id" class="form-control" placeholder="Nome do usuário" required>
-        <input type="number" name="dias_validade" class="form-control" placeholder="Dias de validade" required>
+        <input type="text" name="user_id" class="form-control" placeholder="Nome do usuário (ou ID)" required>
+        <input type="number" name="dias_validade" class="form-control" placeholder="Dias de validade (ex: 7)" required min="1">
         <button type="submit" class="btn btn-success">Criar Token</button>
     </form>
 
+    {% if erro %}
+        <div class="alert alert-danger">{{ erro }}</div>
+    {% endif %}
+
     {% if token_gerado %}
     <div id="mensagem-sucesso" class="alert alert-success fade-out">
-        Token criado com sucesso: <strong>{{ token_gerado }}</strong>
-        <button onclick="copiarTexto('{{ token_gerado }}')" class="btn btn-sm btn-outline-secondary btn-copy">Copiar</button>
+        <span>Token criado com sucesso: <code>{{ token_gerado.token if token_gerado else 'ERRO' }}</code></span>
+        {% if token_gerado %}
+        <button onclick="copiarTexto('{{ token_gerado.token }}')" class="btn btn-sm btn-outline-success btn-copy">Copiar</button>
+        {% endif %}
     </div>
     {% endif %}
 
-    <table class="table table-bordered table-striped">
-        <thead class="table-light">
-        <tr>
-            <th>Usuário</th>
-            <th>Token</th>
-            <th>Criado em</th>
-            <th>Expira em</th>
-            <th>Status</th>
-            <th style="width: 220px;">Ações</th>
-        </tr>
+    <table class="table table-bordered table-striped table-hover">
+        <thead class="table-dark"> <tr>
+                <th>Usuário</th>
+                <th>Token</th>
+                <th>Criado em (Data)</th>
+                <th>Expira em (Data)</th>
+                <th>Status</th>
+                <th style="width: 150px;">Ações</th> </tr>
         </thead>
         <tbody>
-        {% for user_id, token, criado_em, validade_em in tokens %}
-        {% set status = 'ativo' if validade_em >= now else 'inativo' %}
-        <tr>
-            <td>{{ user_id }}</td>
-            <td>
-                <code>{{ token }}</code>
-                <button onclick="copiarTexto('{{ token }}')" class="btn btn-sm btn-outline-secondary btn-copy">Copiar</button>
-            </td>
-            <td>{{ criado_em.strftime('%Y-%m-%d') }}</td>
-            <td>{{ validade_em.strftime('%Y-%m-%d') }}</td>
-            <td>
-                <span class="{{ 'status-ativo' if status == 'ativo' else 'status-inativo' }}">
-                    {{ 'Ativo' if status == 'ativo' else 'Inativo' }}
-                </span>
-            </td>
-            <td>
-                <div class="acoes-wrapper">
-                    <input type="date" class="form-control form-control-sm">
-                    <button class="btn btn-primary btn-sm">Atualizar</button>
-                    <form action="{{ url_for('excluir_token_route') }}" method="POST" class="delete-form">
-                        <input type="hidden" name="token" value="{{ token }}">
-                        <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
-                    </form>
-                </div>
-            </td>
-        </tr>
+        {% for user_id, token_str, criado_str, validade_str in tokens %} {# Renomeado para indicar que são strings #}
+            {# Calcula status aqui (comparação de strings pode não ser ideal, mas funciona para AAAA-MM-DD) #}
+            {% set hoje_str = now.split(' ')[0] %}
+            {% set validade_data_str = validade_str.split(' ')[0] if validade_str else '0000-00-00' %}
+            {% set status = 'ativo' if validade_data_str >= hoje_str else 'inativo' %}
+            <tr>
+                <td>{{ user_id }}</td>
+                <td>
+                    <code>{{ token_str }}</code>
+                    <button onclick="copiarTexto('{{ token_str }}')" class="btn btn-sm btn-outline-secondary btn-copy" title="Copiar Token">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>
+                    </button>
+                </td>
+                <td>{{ criado_str.split(' ')[0] if criado_str else '-' }}</td> {# Mostra só AAAA-MM-DD #}
+                <td>{{ validade_str.split(' ')[0] if validade_str else '-' }}</td> {# Mostra só AAAA-MM-DD #}
+                <td>
+                    <span class="{{ 'status-ativo' if status == 'ativo' else 'status-inativo' }}">
+                        {{ 'Ativo' if status == 'ativo' else 'Expirado' }} {# Mudei Inativo para Expirado #}
+                    </span>
+                </td>
+                <td>
+                    <div class="acoes-wrapper justify-content-center"> {# Centraliza botões #}
+                        {# Funcionalidade de Atualizar não implementada ainda #}
+                        {# <button class="btn btn-primary btn-sm">Atualizar</button> #}
+                        <form action="{{ url_for('excluir_token_route') }}" method="POST" class="delete-form" onsubmit="return confirm('Tem certeza que deseja excluir este token?');">
+                            <input type="hidden" name="token" value="{{ token_str }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="6" class="text-center">Nenhum token encontrado.</td>
+            </tr>
         {% endfor %}
         </tbody>
     </table>
@@ -107,24 +98,44 @@
 
 <script>
     function copiarTexto(texto) {
-        navigator.clipboard.writeText(texto).then(function () {
-            alert('Token copiado para a área de transferência.');
-        });
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('Token copiado!');
+            }).catch(err => {
+                alert('Erro ao copiar.');
+                console.error('Erro ao copiar com clipboard API:', err);
+            });
+        } else {
+            // Fallback para navegadores mais antigos (menos seguro)
+            const textArea = document.createElement("textarea");
+            textArea.value = texto;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Token copiado!');
+            } catch (err) {
+                alert('Erro ao copiar.');
+                console.error('Erro ao copiar com execCommand:', err);
+            }
+            document.body.removeChild(textArea);
+        }
     }
 
+    // Script para fazer a mensagem de sucesso desaparecer (mantido)
     window.addEventListener("DOMContentLoaded", () => {
         const mensagem = document.getElementById("mensagem-sucesso");
         if (mensagem) {
             setTimeout(() => {
-                mensagem.style.opacity = 0;
-                setTimeout(() => mensagem.remove(), 500);
-            }, 2000);
+                mensagem.style.opacity = '0';
+                setTimeout(() => mensagem.remove(), 600); // Espera a transição terminar
+            }, 3000); // Mensagem fica visível por 3 segundos
         }
     });
 </script>
 </body>
 </html>
-
 
 
 
