@@ -1,0 +1,381 @@
+/* WhatsApp Color Palette - ATUALIZADA com cores do NOVO estilo */
+:root {
+    --header-bg: #075e54; /* Do novo CSS */
+    --app-bg: #e5ddd5; /* Do novo CSS (fundo geral 'fora' do chat) */
+    --chat-bg: #e5ddd5; /* Do novo CSS (fundo DENTRO do chat) */ /* Pode usar url() se preferir o pattern antigo */
+    --message-user-bg: #dcf8c6; /* Do novo CSS */
+    --message-her-bg: #ffffff; /* Do novo CSS */
+    --message-her-border: #ccc; /* Borda da msg dela do novo CSS */
+    --text-white: #ffffff;
+    --text-dark: #333; /* Cor de texto padrão */
+    --text-light: #667781; /* Cinza para timestamps/status (ajustar contraste) */
+    --icon-color: #ffffff; /* Ícones no header */
+    --icon-input-color: #667781; /* Ícones no input (cinza) */
+    --input-bg: #f0f2f5; /* Fundo da barra de input (um cinza claro) */
+    --input-text-bg: #ffffff; /* Fundo da caixa de texto */
+    --button-send-bg: #075e54; /* Cor do botão enviar (igual header) */
+    --button-send-hover: #0a7568; /* Cor do botão enviar (hover) */
+    --status-online-color: #d0f8ce; /* Cor do status 'online' do novo CSS (Verificar contraste com #075e54) */
+    --status-typing-color: #d0f8ce; /* Cor para 'digitando...' (pode ser a mesma) */
+    --checkmark-read-color: #4fc3f7; /* Azul do check lido do novo CSS */
+    --message-box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.1); /* Sombra sutil da msg */
+}
+
+/* Reset e Base */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Previne rolagem do body */
+    font-family: 'Segoe UI', Helvetica, Arial, sans-serif; /* Fonte padrão */
+    background-color: var(--app-bg); /* Fundo geral */
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+}
+
+/* Container Principal (Tela Cheia - Layout Antigo Mantido) */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Altura total da viewport */
+    height: -webkit-fill-available; /* Para iOS */
+    max-height: 100%;
+    width: 100%;
+    position: relative;
+    background-color: var(--chat-bg); /* Fundo da área de chat cobre tudo */
+}
+
+/* Header Fixo (Layout Antigo + Estilo Novo) */
+header {
+    background-color: var(--header-bg);
+    color: var(--text-white);
+    padding: 10px 15px; /* Padding do novo CSS */
+    padding-top: calc(10px + env(safe-area-inset-top)); /* Safe area */
+    display: flex; /* Layout flex do novo CSS */
+    justify-content: space-between;
+    align-items: center; /* Alinha verticalmente */
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+    min-height: 60px;
+    gap: 10px; /* Espaçamento entre blocos left/right */
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Espaçamento interno (novo estilo) */
+    flex: 1; /* Ocupa espaço disponível */
+    min-width: 0; /* Permite encolher */
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px; /* Espaçamento entre botões (ajustar se necessário) */
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer; /* Indica que é clicável (para modal) */
+    border: 1px solid rgba(255, 255, 255, 0.5); /* Borda sutil branca */
+}
+
+.contact-info {
+    min-width: 0; /* Permite encolher */
+    line-height: 1.2; /* Ajuste de linha do novo CSS */
+    display: flex;
+    flex-direction: column;
+}
+
+.contact-info h1 {
+    font-size: 17px; /* Tamanho do novo CSS */
+    font-weight: 600; /* Um pouco mais de peso */
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-white);
+}
+
+.status {
+    font-size: 12px; /* Tamanho do novo CSS */
+    margin: 2px 0 0;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--status-online-color); /* Cor 'online' do novo CSS */
+    transition: color 0.3s ease; /* Transição suave para typing */
+}
+.status.typing {
+    color: var(--status-typing-color); /* Cor quando está digitando (pode ser a mesma) */
+    /* font-style: italic; */ /* Opcional: itálico para 'digitando' */
+}
+
+
+/* Ícones no Header e Botões */
+header i {
+    font-size: 20px; /* Tamanho dos ícones */
+    color: var(--icon-color);
+}
+
+header button {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Área de Chat - Flexível (Layout Antigo + Fundo Novo) */
+.chat-area {
+    flex: 1; /* Ocupa todo o espaço vertical restante */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Mantido por precaução */
+    padding: 15px; /* Padding do novo CSS */
+    background-color: var(--chat-bg);
+    /* Opcional: Fundo com pattern (do CSS antigo) - descomente se quiser */
+    /* background-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='a' width='16' height='16' patternUnits='userSpaceOnUse'%3E%3Cpath d='M4 0H12L2.0000000000000004 16H0L8 8L4 0Z' fill='%23e0d8c8'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill='url(%23a)' width='800' height='800'/%3E%3C/svg%3E"); */
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Espaço entre mensagens */
+    padding-bottom: calc(15px + env(safe-area-inset-bottom)); /* Safe area */
+}
+
+/* Mensagens (Estilo Novo Aplicado ao Layout Antigo) */
+.message {
+    padding: 8px 12px; /* Padding interno */
+    border-radius: 8px; /* Bordas arredondadas */
+    max-width: 75%; /* Largura máxima */
+    word-wrap: break-word;
+    font-size: 15px; /* Tamanho da fonte */
+    line-height: 1.4; /* Espaçamento entre linhas */
+    position: relative; /* Para timestamp e checks */
+    box-shadow: var(--message-box-shadow);
+    animation: message-appear 0.2s ease-out forwards;
+    display: flex; /* Para alinhar timestamp/checks melhor */
+    flex-direction: column; /* Empilha conteúdo e timestamp */
+}
+
+@keyframes message-appear { /* Animação mantida */
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.me {
+    align-self: flex-end; /* Alinha à direita (novo CSS) */
+    background-color: var(--message-user-bg);
+    color: var(--text-dark);
+    border-radius: 8px 0px 8px 8px; /* Ajuste leve na borda */
+}
+
+.message.her {
+    align-self: flex-start; /* Alinha à esquerda (novo CSS) */
+    background-color: var(--message-her-bg);
+    color: var(--text-dark);
+    border: 1px solid var(--message-her-border); /* Borda do novo CSS */
+    border-radius: 0px 8px 8px 8px; /* Ajuste leve na borda */
+}
+
+.message-content {
+  /* O texto da mensagem fica aqui (criado via JS) */
+  /* Garante quebra de linha e quebra de palavras */
+   white-space: pre-wrap; 
+   word-break: break-word;
+}
+
+/* Container para Timestamp e Checkmarks */
+.message-footer {
+    display: flex;
+    justify-content: flex-end; /* Alinha à direita dentro do balão */
+    align-items: center; /* Alinha verticalmente */
+    margin-top: 4px; /* Espaço acima */
+    height: 15px; /* Altura fixa para alinhamento vertical consistente */
+}
+
+.timestamp {
+    font-size: 11px; /* Tamanho pequeno */
+    color: var(--text-light); /* Cor cinza */
+    margin-right: 5px; /* Espaço antes dos checks */
+    white-space: nowrap; /* Evita quebra de linha */
+}
+
+.checkmarks {
+    font-size: 12px; /* Tamanho dos checks */
+    color: var(--text-light); /* Cor padrão (enviado - cinza) */
+    white-space: nowrap; /* Evita quebra */
+    line-height: 1; /* Garante alinhamento vertical */
+}
+
+/* Para juntar os checks duplos visualmente */
+.checkmarks i + i {
+   margin-left: -3px; 
+}
+
+/* Cor quando lido (check duplo azul) */
+.checkmarks.read {
+    color: var(--checkmark-read-color); 
+}
+
+
+/* Área de Input - Fixa (Layout Antigo + Estilo Novo) */
+.input-container {
+    background-color: var(--input-bg);
+    padding: 8px 12px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom)); /* Safe area */
+    display: flex;
+    align-items: center; /* Alinha itens verticalmente */
+    gap: 8px;
+    border-top: 1px solid #ddd;
+    position: sticky;
+    bottom: 0;
+    z-index: 1000;
+    width: 100%;
+    box-sizing: border-box; /* Inclui padding na largura total */
+}
+
+.input-wrapper {
+    flex: 1; /* Ocupa espaço */
+    display: flex;
+    align-items: center;
+    background-color: var(--input-text-bg);
+    border-radius: 21px; /* Bordas arredondadas */
+    padding: 0px 12px; /* Padding horizontal */
+    min-height: 42px; /* Altura mínima */
+}
+
+.input-wrapper input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 10px 0; /* Padding vertical */
+    font-size: 16px; /* Tamanho da fonte */
+    background: transparent;
+    min-width: 0; /* Permite encolher */
+    color: var(--text-dark);
+}
+
+/* Botões dentro do Input Wrapper (Emoji/Anexo) */
+.emoji-btn,
+.attach-btn {
+    background: none;
+    border: none;
+    color: var(--icon-input-color);
+    font-size: 22px; /* Tamanho dos ícones */
+    cursor: pointer;
+    padding: 8px; /* Área de clique */
+    opacity: 0.8;
+    transition: opacity 0.2s ease-in-out;
+    display: flex; /* Para centralizar ícone se necessário */
+    align-items: center;
+    justify-content: center;
+}
+
+.emoji-btn:hover,
+.attach-btn:hover {
+    opacity: 1;
+}
+
+/* Botão de Enviar/Microfone (Estilo Novo) */
+.send-btn {
+    background-color: var(--button-send-bg);
+    color: var(--text-white);
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0; /* Não encolhe */
+    transition: background-color 0.2s ease-in-out;
+}
+
+.send-btn i {
+    font-size: 20px; /* Tamanho do ícone */
+    display: block; /* Garante que o ícone ocupe o espaço */
+}
+
+.send-btn:hover {
+    background-color: var(--button-send-hover);
+}
+
+
+/* Modal (Mantido do CSS Antigo - apenas cores ajustadas) */
+.modal {
+    display: none; /* Inicialmente oculto */
+    position: fixed;
+    z-index: 9999;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* Fundo escuro semi-transparente */
+    justify-content: center;
+    align-items: center;
+}
+ 
+.modal-content {
+    display: block; /* Para imagem */
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 5px; /* Borda sutil */
+}
+ 
+.close {
+    position: absolute;
+    top: 15px; right: 25px; /* Posição ajustada */
+    color: #f1f1f1; /* Branco mais suave */
+    font-size: 45px; /* Maior */
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;
+    transition: color 0.3s ease;
+}
+.close:hover {
+    color: #bbb; /* Feedback visual no hover */
+}
+
+/* Responsividade (Mantida e pode precisar de ajustes finos) */
+@media (max-width: 600px) {
+    .message {
+        max-width: 85%; /* Um pouco maior em telas pequenas */
+    }
+
+    header {
+        padding: 10px 12px;
+        padding-top: calc(10px + env(safe-area-inset-top));
+        gap: 8px;
+        min-height: 56px; /* Pouco menor */
+    }
+
+    .header-left { gap: 8px; }
+    .header-right { gap: 15px; }
+    .contact-info h1 { font-size: 16px; }
+    .status { font-size: 11px; }
+    header i { font-size: 18px; } /* Ícones header menores */
+    
+    .input-container{ padding: 6px 10px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+    .input-wrapper { min-height: 40px; padding: 0 10px; }
+    .emoji-btn, .attach-btn { font-size: 20px; padding: 6px; }
+    .send-btn { width: 40px; height: 40px; }
+    .send-btn i { font-size: 18px; }
+    .timestamp { font-size: 10px; } /* Timestamp menor ainda */
+    .checkmarks { font-size: 11px; }
+}
+
+/* Ajustes para Safe Area (Mantido) */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+}

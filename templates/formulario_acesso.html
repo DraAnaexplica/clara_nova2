@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Clara - Acesso</title>
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" href="{{ url_for('static', filename='clara_icon.png') }}">
+    <meta name="theme-color" content="#0084ff"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    </head>
+<body>
+<div class="container" id="mainContainer">
+    {% if sucesso %}
+        <div class="sucesso">
+            Acesso liberado com sucesso!<br>
+            Você já pode usar a Clara por <strong>{{ dias }} dias</strong>.
+            <p style="font-size: smaller; margin-top: 10px;">Você será redirecionado em 3 segundos...</p>
+        </div>
+        <script>
+            setTimeout(() => {
+                window.location.href = "{{ link_final | default('https://clara-app-temporario.vercel.app', true) }}";
+            }, 3000);
+        </script>
+
+    {% elif exibir_instalador %}
+        <h2>Instalar Aplicativo Clara</h2>
+        <p>Clique no botão abaixo para adicionar o aplicativo à sua área de trabalho.<br><strong>Uma pequena janela de confirmação do navegador irá aparecer.</strong></p>
+        <button class="btn" id="instalarBtn">Instalar Aplicativo</button>
+
+    {% else %}
+        <h2>Acessar Clara</h2>
+        {% if erro %}
+        <div class="erro">{{ erro }}</div> {% endif %}
+        <form method="POST" action="{{ url_for('acesso_usuario') }}">
+            <label for="nome">Nome:</label>
+            <input type="text" id="nome" name="nome" placeholder="Seu nome completo" required>
+            <label for="telefone">Telefone:</label>
+            <input type="tel" id="telefone" name="telefone" placeholder="(XX) XXXXX-XXXX" required>
+            <button type="submit">Acessar</button> </form>
+    {% endif %}
+</div>
+
+<script>
+    // Registro do Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register("{{ url_for('static', filename='service_worker.js') }}")
+            .then(() => console.log("✅ SW registrado"))
+            .catch(err => console.error("❌ Erro SW:", err));
+    }
+
+    // Lógica para o botão de Instalação PWA
+    const installBtn = document.getElementById("instalarBtn");
+    const mainContainer = document.getElementById("mainContainer"); // Pega a div principal
+    let deferredPrompt;
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+        console.log("Evento 'beforeinstallprompt'");
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) {
+            installBtn.style.display = "inline-block"; // Mostra o botão
+            installBtn.onclick = () => {
+                 if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(choice => {
+                    if (choice.outcome === "accepted") {
+                        console.log("✅ Usuário aceitou instalar.");
+                        // Substitui o conteúdo do container pela mensagem de sucesso/instrução
+                        if (mainContainer) {
+                            // ***** MODIFICAÇÃO AQUI: Adiciona a classe 'instalacao-concluida' *****
+                            mainContainer.className = 'container instalacao-concluida';
+                            mainContainer.innerHTML = `
+                                <h2><span style="color: #25D366;">✓</span> Instalação Concluída!</h2>
+                                <p>O aplicativo Clara foi adicionado com sucesso.</p>
+                                <p>Agora você pode <strong>fechar esta janela</strong> e abrir o aplicativo diretamente pelo ícone que foi criado na sua área de trabalho ou menu.</p>
+                            `;
+                        }
+                    } else {
+                        console.log("❌ Usuário recusou instalar.");
+                        if(installBtn) installBtn.style.display = "none";
+                    }
+                    deferredPrompt = null;
+                });
+            };
+        } else {
+            // Nada a fazer se o botão não estiver na página
+        }
+    });
+
+     window.addEventListener('appinstalled', (evt) => {
+       console.log('✅ PWA instalado (evento appinstalled)!');
+     });
+
+</script>
+</body>
+</html>
+
+
+

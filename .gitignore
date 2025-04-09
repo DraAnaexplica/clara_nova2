@@ -1,0 +1,17 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# Arquivo de Ambiente - Contém segredos! NUNCA enviar!
+.env
+
+# Arquivos de Cache do Python
+__pycache__/
+*.py[cod]
+
+# Pasta do Ambiente Virtual (se você usa um chamado 'venv')
+venv/
+# Se seu ambiente virtual tiver outro nome, coloque o nome da pasta aqui (ex: env/)
+
+# Arquivos específicos de alguns sistemas ou editores (opcional)
+.DS_Store
+*.sqlite3
+*.db
+*.log
