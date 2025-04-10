@@ -1,4 +1,4 @@
-# app.py (FINALMENTE CORRIGIDO - SEM ERROS DE SINTAXE)
+# app.py (Revisão Final das Correções de Sintaxe)
 
 import os
 import requests
@@ -23,7 +23,7 @@ try:
 except ImportError as e:
     logging.warning(f"Módulo 'painel' não encontrado ou com erro: {e}. Usando placeholders.")
     PAINEL_IMPORTADO = False
-    # Placeholders Corrigidos (um def por linha)
+    # Placeholders Corrigidos (Um def por linha)
     def criar_tabela_tokens(): logging.info("Placeholder: Criar tabela tokens")
     def inserir_token(uid, dias): logging.info(f"Placeholder: Inserir token {uid}"); return {"token": f"fake_token_{uid}"}
     def listar_tokens(): logging.info("Placeholder: Listar tokens"); return []
@@ -39,9 +39,11 @@ try:
 except ImportError:
     logging.warning("Biblioteca 'pytz' não encontrada. Usando UTC.")
     PYTZ_IMPORTADO = False
+    # ***** ATENÇÃO: CORREÇÃO DA INDENTAÇÃO ABAIXO *****
     class timezone: # Placeholder com indentação correta
         def __init__(self, tz_name):
-            pass # << CORREÇÃO AQUI
+            pass # <<<<<<< 'pass' NA LINHA SEGUINTE, INDENTADO
+    # ***** FIM DA CORREÇÃO *****
 
 # Configuração do App Flask
 app = Flask(__name__)
@@ -51,7 +53,7 @@ if app.secret_key == "configure-uma-chave-secreta-forte-no-env": logging.warning
 # Configurações da IA
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-AI_MODEL = "deepseek/deepseek-chat" # Mantendo DeepSeek
+AI_MODEL = "deepseek/deepseek-chat-v3-0324" # Mantendo DeepSeek
 logging.info(f"Usando modelo de IA: {AI_MODEL}")
 
 # Ler SYSTEM_PROMPT do arquivo
@@ -59,23 +61,23 @@ SYSTEM_PROMPT_FILE = "system_prompt.txt"; SYSTEM_PROMPT = "Assistente."
 try:
     with open(SYSTEM_PROMPT_FILE, 'r', encoding='utf-8') as f: SYSTEM_PROMPT = f.read().strip()
     if SYSTEM_PROMPT and SYSTEM_PROMPT != "Assistente.": logging.info(f"Prompt OK de '{SYSTEM_PROMPT_FILE}'.")
-    else: logging.warning(f"Usando prompt padrão. '{SYSTEM_PROMPT_FILE}' vazio/não encontrado?")
+    else: logging.warning(f"Usando prompt padrão.")
 except Exception as e: logging.error(f"Erro lendo '{SYSTEM_PROMPT_FILE}': {e}", exc_info=True)
 if not OPENROUTER_API_KEY: logging.error("FATAL: OPENROUTER_API_KEY não carregada!")
 
-# Criação das Tabelas na Inicialização
+# Criação Tabelas
 try:
     if PAINEL_IMPORTADO: criar_tabela_tokens(); criar_tabela_chat_history()
 except Exception as e: logging.error(f"Erro ao criar tabelas: {e}", exc_info=True)
 
-# --- Função Auxiliar API OpenRouter (Corrigida e Revisada) ---
+# --- Função Auxiliar API OpenRouter (Corrigida) ---
 def get_ai_response(messages_to_send: list) -> str:
     if not OPENROUTER_API_KEY: raise ValueError("Chave API não configurada.")
     headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json", "HTTP-Referer": request.url_root if request else "http://localhost:5000", "X-Title": "Dra Ana App"}
-    payload = {"model": AI_MODEL, "messages": messages_to_send}
-    logging.info(f"Enviando {len(messages_to_send)} msgs para {AI_MODEL}")
+    payload = {"model": AI_MODEL, "messages": messages_to_send, "temperature": 0.9} # Adicionando temp 0.9
+    logging.info(f"Enviando {len(messages_to_send)} msgs para {AI_MODEL} com temp=0.9")
     try: logging.debug(f"Payload (parcial): {json.dumps(payload, ensure_ascii=False)[:500]}...")
-    except Exception: logging.debug("Nao foi possivel logar payload json.")
+    except Exception: logging.debug("Nao logou payload json.")
     try:
         response = requests.post(OPENROUTER_API_URL, headers=headers, json=payload, timeout=45); response.raise_for_status()
         api_result=response.json();
@@ -94,7 +96,7 @@ def get_ai_response(messages_to_send: list) -> str:
     except requests.exceptions.RequestException as e: logging.error(f"Erro rede API: {e}"); raise ConnectionError("Erro rede IA.")
     except Exception as e: logging.exception("Erro inesperado resposta IA."); raise ValueError("Erro processar resposta IA.")
 
-# --- Rotas ---
+# --- Rotas (Completas) ---
 @app.route("/")
 def index(): return redirect(url_for("instalar"))
 @app.route("/instalar")
