@@ -1,11 +1,11 @@
-# app.py (Versão Final - Modelo DeepSeek e Erros Corrigidos)
+# app.py (Revisão Final das Correções de Sintaxe)
 
 import os
 import requests
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from dotenv import load_dotenv
 import logging
-from datetime import datetime, timezone # Importa timezone de datetime
+from datetime import datetime
 import json
 
 # Configuração de Logging
@@ -18,12 +18,14 @@ logging.info(f"Arquivo .env carregado com sucesso? {load_dotenv_success}")
 # Importação Segura do Módulo 'painel'
 try:
     from painel import ( criar_tabela_tokens, inserir_token, listar_tokens, excluir_token, criar_tabela_chat_history, add_chat_message, get_chat_history )
-    PAINEL_IMPORTADO = True; logging.info("Módulo 'painel' importado.")
+    PAINEL_IMPORTADO = True
+    logging.info("Módulo 'painel' e funções de chat importados com sucesso.")
 except ImportError as e:
-    logging.warning(f"Painel não encontrado: {e}. Usando placeholders."); PAINEL_IMPORTADO = False
-    # Placeholders Corrigidos
+    logging.warning(f"Módulo 'painel' não encontrado ou com erro: {e}. Usando placeholders.")
+    PAINEL_IMPORTADO = False
+    # Placeholders Corrigidos (Um def por linha)
     def criar_tabela_tokens(): logging.info("Placeholder: Criar tabela tokens")
-    def inserir_token(n,t,d): logging.info(f"Placeholder: Inserir token {n}/{t}"); return f"fake_token_{n}"
+    def inserir_token(uid, dias): logging.info(f"Placeholder: Inserir token {uid}"); return {"token": f"fake_token_{uid}"}
     def listar_tokens(): logging.info("Placeholder: Listar tokens"); return []
     def excluir_token(tok): logging.info(f"Placeholder: Excluir token {tok}")
     def criar_tabela_chat_history(): logging.info("Placeholder: Criar tabela chat")
@@ -32,30 +34,32 @@ except ImportError as e:
 
 # Importa pytz (com fallback corrigido)
 try:
-    # Renomeia para evitar conflito com datetime.timezone
-    from pytz import timezone as pytz_timezone
+    from pytz import timezone
     PYTZ_IMPORTADO = True
 except ImportError:
-    logging.warning("pytz não encontrado."); PYTZ_IMPORTADO = False
-    # Não precisamos mais do placeholder class timezone aqui, pois importamos de datetime
+    logging.warning("Biblioteca 'pytz' não encontrada. Usando UTC.")
+    PYTZ_IMPORTADO = False
+    # ***** ATENÇÃO: CORREÇÃO DA INDENTAÇÃO ABAIXO *****
+    class timezone: # Placeholder com indentação correta
+        def __init__(self, tz_name):
+            pass # <<<<<<< 'pass' NA LINHA SEGUINTE, INDENTADO
+    # ***** FIM DA CORREÇÃO *****
 
 # Configuração do App Flask
 app = Flask(__name__)
-app.secret_key = os.getenv("PAINEL_SENHA", "fallback-key")
-if app.secret_key == "fallback-key": logging.warning("PAINEL_SENHA não definida!")
+app.secret_key = os.getenv("PAINEL_SENHA", "configure-uma-chave-secreta-forte-no-env")
+if app.secret_key == "configure-uma-chave-secreta-forte-no-env": logging.warning("PAINEL_SENHA não definida!")
 
 # Configurações da IA
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-# ***** MODELO ATUALIZADO DE VOLTA PARA DEEPSEEK *****
-AI_MODEL = "deepseek/deepseek-chat" # <<< Usando Deepseek conforme solicitado
-# ***** FIM MODELO *****
+AI_MODEL = "deepseek/deepseek-chat-v3-0324" # Mantendo DeepSeek
 logging.info(f"Usando modelo de IA: {AI_MODEL}")
 
 # Ler SYSTEM_PROMPT do arquivo
 SYSTEM_PROMPT_FILE = "system_prompt.txt"; SYSTEM_PROMPT = "Assistente."
 try:
-    with open(SYSTEM_PROMPT_FILE,'r',encoding='utf-8') as f: SYSTEM_PROMPT = f.read().strip()
+    with open(SYSTEM_PROMPT_FILE, 'r', encoding='utf-8') as f: SYSTEM_PROMPT = f.read().strip()
     if SYSTEM_PROMPT and SYSTEM_PROMPT != "Assistente.": logging.info(f"Prompt OK de '{SYSTEM_PROMPT_FILE}'.")
     else: logging.warning(f"Usando prompt padrão.")
 except Exception as e: logging.error(f"Erro lendo '{SYSTEM_PROMPT_FILE}': {e}", exc_info=True)
@@ -66,15 +70,11 @@ try:
     if PAINEL_IMPORTADO: criar_tabela_tokens(); criar_tabela_chat_history()
 except Exception as e: logging.error(f"Erro ao criar tabelas: {e}", exc_info=True)
 
-# --- Função Auxiliar API OpenRouter (Corrigida e com Temperatura) ---
+# --- Função Auxiliar API OpenRouter (Corrigida) ---
 def get_ai_response(messages_to_send: list) -> str:
     if not OPENROUTER_API_KEY: raise ValueError("Chave API não configurada.")
     headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json", "HTTP-Referer": request.url_root if request else "http://localhost:5000", "X-Title": "Dra Ana App"}
-    payload = {
-        "model": AI_MODEL, # Usa a variável definida acima (DeepSeek agora)
-        "messages": messages_to_send,
-        "temperature": 0.9, # Mantendo a temperatura
-    }
+    payload = {"model": AI_MODEL, "messages": messages_to_send, "temperature": 0.9} # Adicionando temp 0.9
     logging.info(f"Enviando {len(messages_to_send)} msgs para {AI_MODEL} com temp=0.9")
     try: logging.debug(f"Payload (parcial): {json.dumps(payload, ensure_ascii=False)[:500]}...")
     except Exception: logging.debug("Nao logou payload json.")
@@ -85,8 +85,10 @@ def get_ai_response(messages_to_send: list) -> str:
             ai_content = api_result['choices'][0]['message']['content']; logging.info(f"Resposta OK: {ai_content[:100]}..."); return ai_content.strip() if isinstance(ai_content, str) else str(ai_content)
         else: logging.error(f"Resposta API inesperada: {api_result}"); raise ValueError("Resposta API inesperada.")
     except requests.exceptions.Timeout: logging.error("Timeout API."); raise TimeoutError("IA demorou.")
+    # Bloco except HTTPError com formatação CORRETA
     except requests.exceptions.HTTPError as http_err:
-        status_code = http_err.response.status_code; logging.error(f"Erro HTTP API: {status_code} - {http_err.response.text}")
+        status_code = http_err.response.status_code
+        logging.error(f"Erro HTTP API: {status_code} - {http_err.response.text}")
         if status_code == 401: raise PermissionError("Erro auth API.")
         elif status_code == 402: raise ConnectionRefusedError("Créditos/Limite API.")
         elif status_code == 429: raise ConnectionRefusedError("Limite taxa API.")
@@ -94,7 +96,7 @@ def get_ai_response(messages_to_send: list) -> str:
     except requests.exceptions.RequestException as e: logging.error(f"Erro rede API: {e}"); raise ConnectionError("Erro rede IA.")
     except Exception as e: logging.exception("Erro inesperado resposta IA."); raise ValueError("Erro processar resposta IA.")
 
-# --- Rotas (Completas e Corrigidas) ---
+# --- Rotas (Completas) ---
 @app.route("/")
 def index(): return redirect(url_for("instalar"))
 @app.route("/instalar")
@@ -106,14 +108,14 @@ def acesso_usuario():
     if request.method == "POST":
         nome=request.form.get("nome"); telefone=request.form.get("telefone")
         if not nome or not telefone: return render_template("formulario_acesso.html", sucesso=False, erro="Nome/telefone obrigatórios."), 400
-        dias=7 # Idealmente ler do env: int(os.getenv("DEFAULT_TRIAL_DAYS", 7))
+        user_id=f"{nome} ({telefone})"; dias=7
         try:
-            if PAINEL_IMPORTADO: token=inserir_token(nome,telefone,dias);
-            else: logging.warning("Simulando token."); token=f"fake_{nome}"
-            if token and isinstance(token, str): session['acesso_concluido']=True; session['user_token']=token; logging.info(f"Acesso OK: {nome}/{telefone}, T:{token[:8]}..."); return redirect(url_for('dra_ana_route'))
-            elif token is False: logging.warning(f"Tel duplicado: {telefone}"); return render_template("formulario_acesso.html",sucesso=False,erro="Telefone já cadastrado."), 409
-            else: return render_template("formulario_acesso.html",sucesso=False,erro="Erro interno ao criar acesso."), 500
-        except Exception as e: logging.error(f"Erro rota /acesso POST: {e}",exc_info=True); return render_template("formulario_acesso.html",sucesso=False,erro="Erro processar acesso."),500
+            if PAINEL_IMPORTADO: token=inserir_token(user_id,dias); assert token
+            else: logging.warning("Simulando token."); token=f"fake_{user_id}"
+            session['acesso_concluido']=True; session['user_token']=token
+            logging.info(f"Acesso OK: {user_id}, Token:{token[:8]}...")
+            return redirect(url_for('dra_ana_route'))
+        except Exception as e: logging.error(f"Erro inserir token {user_id}: {e}",exc_info=True); return render_template("formulario_acesso.html",sucesso=False,erro="Erro processar acesso."),500
     if session.get('acesso_concluido') and session.get('user_token'): return redirect(url_for('dra_ana_route'))
     else: session.pop('acesso_concluido',None); session.pop('user_token',None); session.modified=True; return render_template("formulario_acesso.html",sucesso=False)
 @app.route("/dra-ana")
@@ -158,47 +160,33 @@ def logout():
 @app.route("/painel", methods=["GET", "POST"])
 def painel():
     if not session.get("autenticado"): return redirect(url_for("login"))
-    token_gerado_info=None; erro_painel="" # Correção inicialização
-    if request.method == "POST": # Lógica para CRIAR token via painel
-        # ATENÇÃO: Precisa de campos 'nome_painel' e 'telefone_painel' no form de painel.html
-        nome_input = request.form.get("nome_painel", "Usuário Painel") # Pega nome do form
-        telefone_input = request.form.get("telefone_painel", None) # Pega telefone
+    token_gerado_info=None; erro_painel="" # <<< Correção aqui
+    if request.method == "POST" and "user_id" in request.form:
+        user_id=request.form.get("user_id")
         try:
             dias_str=request.form.get("dias_validade",'7'); assert dias_str.isdigit() and int(dias_str)>0
             dias=int(dias_str)
-            if not telefone_input: raise ValueError("Telefone é obrigatório para criar token.")
-
-            if PAINEL_IMPORTADO:
-                 token_gerado_info=inserir_token(nome=nome_input, telefone=telefone_input, dias_validade=dias);
-                 if token_gerado_info is False: erro_painel = "Telefone já existe."
-                 elif token_gerado_info is None: erro_painel = "Erro ao gerar token."
-                 else: logging.info(f"Admin gerou token {nome_input}/{telefone_input[:5]}.../{dias}d.") # token_gerado_info é o token str
+            if PAINEL_IMPORTADO: token_gerado_info=inserir_token(user_id,dias); logging.info(f"Admin gerou token {user_id}/{dias}d.")
             else: erro_painel="Painel não importado."
-        except(ValueError,AssertionError) as ve: erro_painel=f"Dados inválidos: {ve}"; logging.warning(erro_painel)
+        except(ValueError,AssertionError): erro_painel="Dias inválido."; logging.warning(erro_painel)
         except Exception as e: logging.exception("Erro gerar token painel."); erro_painel="Erro inesperado."
-
-    # Lógica para LISTAR tokens (precisa ajustar listar_tokens e template)
     tokens=[];
     try:
-        if PAINEL_IMPORTADO: tokens=listar_tokens() # << AINDA PRECISA AJUSTAR listar_tokens no painel/__init__.py
+        if PAINEL_IMPORTADO: tokens=listar_tokens()
         else: msg_e="Painel não importado."; erro_painel+=(" "+msg_e if erro_painel else msg_e)
     except Exception as e: logging.exception("Erro listar tokens."); msg_e="Erro listar tokens."; erro_painel+=(" "+msg_e if erro_painel else msg_e)
-
-    now_tz=datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'); # Usa UTC por padrão
+    now_tz=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC');
     if PYTZ_IMPORTADO:
-        try: now_tz=datetime.now(pytz_timezone("America/Sao_Paulo")).strftime('%Y-%m-%d %H:%M:%S %Z%z') # Usa pytz_timezone
+        try: now_tz=datetime.now(timezone("America/Sao_Paulo")).strftime('%Y-%m-%d %H:%M:%S %Z%z')
         except Exception as e: logging.warning(f"Erro timezone: {e}. Usando UTC.")
-
-    token_real_gerado = token_gerado_info if isinstance(token_gerado_info, str) else None
-    return render_template("painel.html",token_gerado=token_real_gerado,tokens=tokens,now=now_tz,erro=erro_painel) # Ajustado token_gerado
-
+    return render_template("painel.html",token_gerado=token_gerado_info,tokens=tokens,now=now_tz,erro=erro_painel)
 @app.route("/excluir_token", methods=["POST"])
 def excluir_token_route():
     if not session.get("autenticado"): return redirect(url_for("login"))
     token=request.form.get("token")
     if token:
         try:
-            if PAINEL_IMPORTADO: excluir_token(token);
+            if PAINEL_IMPORTADO: excluir_token(token); logging.info(f"Admin excluiu token: {token[:8]}...")
             else: logging.error("Painel não importado.")
         except Exception as e: logging.exception(f"Erro excluir token {token[:8]}...")
     else: logging.warning("Exclusão sem token.")
