@@ -1,4 +1,4 @@
-# painel/__init__.py (VERSÃO ATUALIZADA - PÓS Passos 1.1, 1.2, 1.4)
+# painel/__init__.py (VERSÃO ATUALIZADA - PÓS Passo 2.1)
 
 import os
 import psycopg2
@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone # Import timezone from dateti
 import secrets
 import logging
 
-# Importa pytz se disponível (mantido como estava)
+# Importa pytz se disponível 
 try:
     from pytz import timezone as pytz_timezone
     PYTZ_IMPORTADO = True
@@ -18,16 +18,16 @@ except ImportError:
         def __init__(self, tz_name):
             pass
 
-# Configuração básica de logging (mantido como estava)
+# Configuração básica de logging 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Carrega variáveis de ambiente (mantido como estava)
+# Carrega variáveis de ambiente 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# --- Funções de Tokens (Revisadas) ---
+# --- Funções de Tokens ---
 
-# Passo 1.1: Ajustada para nova estrutura (nome, telefone UNIQUE) e índice
+# (Função do Passo 1.1 - Mantida)
 def criar_tabela_tokens():
     """Cria a tabela de tokens de acesso (nova estrutura com nome e telefone), se não existir."""
     if not DATABASE_URL:
@@ -39,17 +39,16 @@ def criar_tabela_tokens():
         with conn.cursor() as cur:
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS tokens (
-                    id SERIAL PRIMARY KEY,                   -- Mantém ID numérico autoincremental
-                    nome TEXT NOT NULL,                      -- Coluna separada para nome
-                    telefone TEXT NOT NULL UNIQUE,           -- Coluna separada para telefone, DEVE SER ÚNICO
-                    token TEXT NOT NULL UNIQUE,              -- Token de acesso individual, também único
-                    criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- Data/hora criação com fuso
-                    validade_em TIMESTAMP WITH TIME ZONE       -- Data/hora validade com fuso
+                    id SERIAL PRIMARY KEY,                  
+                    nome TEXT NOT NULL,                     
+                    telefone TEXT NOT NULL UNIQUE,          
+                    token TEXT NOT NULL UNIQUE,             
+                    criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, 
+                    validade_em TIMESTAMP WITH TIME ZONE      
                 );
             """)
-            # Cria índices para otimizar buscas
             cur.execute(""" CREATE INDEX IF NOT EXISTS idx_tokens_token ON tokens (token); """)
-            cur.execute(""" CREATE INDEX IF NOT EXISTS idx_tokens_telefone ON tokens (telefone); """) # Índice para telefone
+            cur.execute(""" CREATE INDEX IF NOT EXISTS idx_tokens_telefone ON tokens (telefone); """) 
         conn.commit()
         logging.info("Tabela 'tokens' verificada/criada com sucesso (nova estrutura).")
     except psycopg2.Error as e:
@@ -61,12 +60,12 @@ def criar_tabela_tokens():
     finally:
         if conn: conn.close()
 
-# Função auxiliar não modificada neste bloco
+# (Função auxiliar - Mantida)
 def gerar_token():
     """Gera um token seguro."""
     return secrets.token_urlsafe(16)
 
-# Passo 1.2: Ajustada para receber nome/telefone, usar novas colunas e tratar telefone duplicado
+# (Função do Passo 1.2 - Mantida)
 def inserir_token(nome: str, telefone: str, dias_validade: int) -> str | None:
     """
     Insere um novo token associado a um nome e telefone único.
@@ -83,7 +82,7 @@ def inserir_token(nome: str, telefone: str, dias_validade: int) -> str | None:
     conn = None
     token_novo = gerar_token()
     agora_utc = datetime.now(timezone.utc)
-    validade_utc = agora_utc + timedelta(days=int(dias_validade))
+    validade_utc = agora_utc + timedelta(days=int(dias_validade)) 
 
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -100,10 +99,9 @@ def inserir_token(nome: str, telefone: str, dias_validade: int) -> str | None:
         return token_novo
 
     except psycopg2.errors.UniqueViolation as e:
-        # Tratamento Específico para Telefone Duplicado
         logging.warning(f"Tentativa de inserir telefone duplicado: '***{telefone[-4:]}'. O usuário '{nome}' já pode ter um token.")
         if conn: conn.rollback()
-        return None # Indica falha (telefone duplicado)
+        return None 
 
     except psycopg2.Error as e:
         logging.exception(f"Erro de banco de dados ao inserir token para Nome='{nome}', Telefone='***{telefone[-4:]}': {e.pgcode} - {e.pgerror}")
@@ -118,7 +116,7 @@ def inserir_token(nome: str, telefone: str, dias_validade: int) -> str | None:
     finally:
         if conn: conn.close()
 
-# Passo 1.4: Ajustada para buscar e retornar nome/telefone em vez de user_id
+# (Função do Passo 1.4 - Mantida)
 def listar_tokens() -> list[tuple[str, str, str, str | None, str | None]]:
     """
     Lista todos os tokens do banco, retornando nome, telefone, token e datas formatadas.
@@ -132,14 +130,11 @@ def listar_tokens() -> list[tuple[str, str, str, str | None, str | None]]:
     try:
         conn = psycopg2.connect(DATABASE_URL)
         with conn.cursor() as cur:
-            # --- ALTERAÇÃO PRINCIPAL AQUI ---
-            # Seleciona nome e telefone em vez de user_id
             cur.execute("""
                 SELECT nome, telefone, token, criado_em, validade_em 
                 FROM tokens 
                 ORDER BY criado_em DESC
             """)
-            # --- FIM DA ALTERAÇÃO ---
             tokens_raw = cur.fetchall()
             logging.info(f"Listados {len(tokens_raw)} tokens raw do banco.")
     except psycopg2.Error as e:
@@ -149,35 +144,25 @@ def listar_tokens() -> list[tuple[str, str, str, str | None, str | None]]:
     finally:
         if conn: conn.close()
 
-    # Formatação das datas (lógica mantida, mas aplicada aos dados corretos)
     tokens_formatados = []
     fuso_brasil = None
     if PYTZ_IMPORTADO:
         try: fuso_brasil = pytz_timezone("America/Sao_Paulo")
         except Exception as tz_e: logging.warning(f"Erro timezone SP: {tz_e}. Usando UTC para formatação.")
 
-    for nome, telefone, tok, cr_dt, vd_dt in tokens_raw: # <<< Variáveis do loop atualizadas
-        # Garante que as datas tenham timezone (UTC se não tiverem)
+    for nome, telefone, tok, cr_dt, vd_dt in tokens_raw: 
         if cr_dt and cr_dt.tzinfo is None: cr_dt = cr_dt.replace(tzinfo=timezone.utc)
         if vd_dt and vd_dt.tzinfo is None: vd_dt = vd_dt.replace(tzinfo=timezone.utc)
-
-        # Converte para o fuso horário de São Paulo, se possível
         cr_final_dt = cr_dt.astimezone(fuso_brasil) if fuso_brasil and cr_dt else cr_dt
         vd_final_dt = vd_dt.astimezone(fuso_brasil) if fuso_brasil and vd_dt else vd_dt
-
-        # Formata como string para exibição (ou None se a data for nula)
         cr_final_str = cr_final_dt.strftime('%Y-%m-%d %H:%M:%S %Z%z') if cr_final_dt else None
         vd_final_str = vd_final_dt.strftime('%Y-%m-%d %H:%M:%S %Z%z') if vd_final_dt else None
-
-        # --- ALTERAÇÃO PRINCIPAL AQUI ---
-        # Adiciona a tupla com nome e telefone à lista final
         tokens_formatados.append((nome, telefone, tok, cr_final_str, vd_final_str))
-        # --- FIM DA ALTERAÇÃO ---
-
+        
     logging.info(f"Retornando {len(tokens_formatados)} tokens formatados.")
     return tokens_formatados
 
-# Função não modificada neste bloco
+# (Função original - Mantida)
 def excluir_token(token: str) -> bool:
     """Exclui um token específico do banco."""
     if not DATABASE_URL or not token: logging.error("DB URL/token ausente."); return False
@@ -201,11 +186,71 @@ def excluir_token(token: str) -> bool:
     finally:
         if conn: conn.close()
 
-# --- Funções de Chat History (NÃO MODIFICADAS NESTE BLOCO) ---
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# 👇👇👇 NOVA FUNÇÃO ADICIONADA (Passo 2.1) 👇👇👇
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def verificar_token_valido(token_a_verificar: str) -> bool:
+    """
+    Verifica se um token existe no banco de dados e se ainda está dentro do prazo de validade.
+    Retorna True se o token existe e é válido, False caso contrário.
+    """
+    if not DATABASE_URL:
+        logging.error("DATABASE_URL não definida. Impossível verificar token.")
+        return False
+    if not token_a_verificar:
+        logging.warning("Tentativa de verificar token vazio.")
+        return False
+
+    conn = None
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT validade_em FROM tokens WHERE token = %s
+                """,
+                (token_a_verificar,)
+            )
+            resultado = cur.fetchone() 
+
+        if resultado is None:
+            logging.info(f"Token não encontrado no BD: {token_a_verificar[:8]}...")
+            return False 
+
+        validade_db = resultado[0] 
+        if validade_db is None:
+             logging.warning(f"Token {token_a_verificar[:8]}... encontrado, mas sem data de validade definida.")
+             return False
+
+        agora_utc = datetime.now(timezone.utc)
+
+        if agora_utc < validade_db:
+            logging.debug(f"Token válido encontrado: {token_a_verificar[:8]}...")
+            return True 
+        else:
+            logging.info(f"Token encontrado, mas expirado: {token_a_verificar[:8]}... Validade: {validade_db}")
+            return False 
+
+    except psycopg2.Error as e:
+        logging.exception(f"Erro de BD ao verificar token {token_a_verificar[:8]}...: {e.pgcode} - {e.pgerror}")
+        return False 
+    except Exception as e:
+        logging.exception(f"Erro inesperado ao verificar token {token_a_verificar[:8]}...")
+        return False 
+    finally:
+        if conn:
+            conn.close()
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# 👆👆👆 NOVA FUNÇÃO ADICIONADA (Passo 2.1) 👆👆👆
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+# --- Funções de Chat History (mantidas como antes) ---
 
 def criar_tabela_chat_history():
     """Cria a tabela para armazenar o histórico de chat, se não existir."""
     # (Código original mantido)
+    # ... (resto da função como antes) ...
     if not DATABASE_URL: logging.error("DB URL não definida."); return
     conn = None
     try:
@@ -230,7 +275,8 @@ def criar_tabela_chat_history():
 
 def add_chat_message(user_token: str, role: str, content: str) -> bool:
     """Adiciona uma mensagem (user ou assistant) ao histórico no banco."""
-     # (Código original mantido)
+    # (Código original mantido)
+    # ... (resto da função como antes) ...
     if not DATABASE_URL or not user_token or role not in ('user', 'assistant') or content is None: logging.warning(f"Tentativa msg chat inválida. Token:{user_token[:8] if user_token else 'N/A'} R:{role}"); return False
     conn = None
     try:
@@ -248,7 +294,8 @@ def add_chat_message(user_token: str, role: str, content: str) -> bool:
 
 def get_chat_history(user_token: str, limit: int = 20) -> list:
     """Busca as últimas 'limit' mensagens (pares user/assistant) para um token."""
-     # (Código original mantido)
+    # (Código original mantido)
+    # ... (resto da função como antes) ...
     if not DATABASE_URL or not user_token: return []
     conn = None; history = []
     try:
