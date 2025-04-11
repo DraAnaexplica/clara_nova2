@@ -1,4 +1,4 @@
-# app.py (VERSÃO COMPLETA - CORREÇÃO SyntaxError)
+# app.py (VERSÃO COMPLETA - CORREÇÃO com Modificações)
 
 import os
 import requests
@@ -16,29 +16,48 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 load_dotenv_success = load_dotenv(override=True, verbose=True)
 logging.info(f"Arquivo .env carregado com sucesso? {load_dotenv_success}")
 
-# Importação do Módulo 'painel' 
+# --- Modificação 1: Adicionar Importação do buscar_token_ativo_por_telefone ---
 try:
     from painel import ( 
         criar_tabela_tokens, inserir_token, listar_tokens, excluir_token, 
         verificar_token_valido, 
         atualizar_validade_token, 
+        buscar_token_ativo_por_telefone,  # <--- LINHA ADICIONADA/GARANTIDA
         criar_tabela_chat_history, add_chat_message, get_chat_history 
     )
     PAINEL_IMPORTADO = True
-    logging.info("Módulo 'painel' (com att_validade) e chat importados com sucesso.")
+    logging.info("Módulo 'painel' (com buscar_token) e chat importados com sucesso.")
 except ImportError as e:
     logging.warning(f"Módulo 'painel' não encontrado ou com erro: {e}. Usando placeholders.")
     PAINEL_IMPORTADO = False
     # Placeholders 
-    def criar_tabela_tokens(): logging.info("Placeholder: Criar tabela tokens")
-    def inserir_token(nome, telefone, dias): logging.info(f"Placeholder: Inserir token {nome}/{telefone}"); return f"fake_token_{nome}" 
-    def listar_tokens(): logging.info("Placeholder: Listar tokens"); return []
-    def excluir_token(tok): logging.info(f"Placeholder: Excluir token {tok}")
-    def verificar_token_valido(tok): logging.warning(f"Placeholder: Verificando token {tok[:8]}..."); return True 
-    def atualizar_validade_token(tok, dias): logging.warning(f"Placeholder: Atualizando token {tok[:8]} +{dias}d"); return True 
-    def criar_tabela_chat_history(): logging.info("Placeholder: Criar tabela chat")
-    def add_chat_message(ut, r, c): logging.info(f"Placeholder: Add chat msg {ut[:8]} R:{r}"); return True
-    def get_chat_history(ut, lim): logging.info(f"Placeholder: Get chat hist {ut[:8]}"); return []
+    def criar_tabela_tokens(): 
+        logging.info("Placeholder: Criar tabela tokens")
+    def inserir_token(nome, telefone, dias): 
+        logging.info(f"Placeholder: Inserir token {nome}/{telefone}")
+        return f"fake_token_{nome}"
+    def listar_tokens(): 
+        logging.info("Placeholder: Listar tokens")
+        return []
+    def excluir_token(tok): 
+        logging.info(f"Placeholder: Excluir token {tok}")
+    def verificar_token_valido(tok): 
+        logging.warning(f"Placeholder: Verificando token {tok[:8]}...")
+        return True
+    def atualizar_validade_token(tok, dias): 
+        logging.warning(f"Placeholder: Atualizando token {tok[:8]} +{dias}d")
+        return True
+    def buscar_token_ativo_por_telefone(telefone_a_buscar): 
+        logging.warning(f"Placeholder: Buscando T p/ tel ***{telefone_a_buscar[-4:]}")
+        return None
+    def criar_tabela_chat_history(): 
+        logging.info("Placeholder: Criar tabela chat")
+    def add_chat_message(ut, r, c): 
+        logging.info(f"Placeholder: Add chat msg {ut[:8]} R:{r}")
+        return True
+    def get_chat_history(ut, lim): 
+        logging.info(f"Placeholder: Get chat hist {ut[:8]}")
+        return []
 
 # Importa pytz 
 try:
@@ -54,15 +73,13 @@ except ImportError:
     class timezone:
         def __init__(self, tz_name):
             logging.debug(f"Usando placeholder timezone para: {tz_name}")
-            # Não precisa de 'pass' se o __init__ faz algo (como logar)
-            
     # 👆👆 BLOCO CORRIGIDO ACIMA 👆👆
-
 
 # Configuração do App Flask 
 app = Flask(__name__)
 app.secret_key = os.getenv("PAINEL_SENHA", "configure-uma-chave-secreta-forte-no-env")
-if app.secret_key == "configure-uma-chave-secreta-forte-no-env": logging.warning("PAINEL_SENHA não definida!")
+if app.secret_key == "configure-uma-chave-secreta-forte-no-env":
+    logging.warning("PAINEL_SENHA não definida!")
 
 # Configurações da IA 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -71,23 +88,33 @@ AI_MODEL = "openai/chatgpt-4o-latest"
 logging.info(f"Usando modelo de IA: {AI_MODEL}")
 
 # Ler SYSTEM_PROMPT do arquivo 
-SYSTEM_PROMPT_FILE = "system_prompt.txt"; SYSTEM_PROMPT = "Assistente."
+SYSTEM_PROMPT_FILE = "system_prompt.txt"
+SYSTEM_PROMPT = "Assistente."
 try:
-    with open(SYSTEM_PROMPT_FILE, 'r', encoding='utf-8') as f: SYSTEM_PROMPT = f.read().strip()
-    if SYSTEM_PROMPT and SYSTEM_PROMPT != "Assistente.": logging.info(f"Prompt OK de '{SYSTEM_PROMPT_FILE}'.")
-    else: logging.warning(f"Usando prompt padrão.")
-except Exception as e: logging.error(f"Erro lendo '{SYSTEM_PROMPT_FILE}': {e}", exc_info=True)
-if not OPENROUTER_API_KEY: logging.error("FATAL: OPENROUTER_API_KEY não carregada!")
+    with open(SYSTEM_PROMPT_FILE, 'r', encoding='utf-8') as f:
+        SYSTEM_PROMPT = f.read().strip()
+    if SYSTEM_PROMPT and SYSTEM_PROMPT != "Assistente.":
+        logging.info(f"Prompt OK de '{SYSTEM_PROMPT_FILE}'.")
+    else:
+        logging.warning(f"Usando prompt padrão.")
+except Exception as e:
+    logging.error(f"Erro lendo '{SYSTEM_PROMPT_FILE}': {e}", exc_info=True)
+if not OPENROUTER_API_KEY:
+    logging.error("FATAL: OPENROUTER_API_KEY não carregada!")
 
 # Criação Tabelas 
 try:
-    if PAINEL_IMPORTADO: criar_tabela_tokens(); criar_tabela_chat_history()
-except Exception as e: logging.error(f"Erro ao criar tabelas: {e}", exc_info=True)
+    if PAINEL_IMPORTADO:
+        criar_tabela_tokens()
+        criar_tabela_chat_history()
+except Exception as e:
+    logging.error(f"Erro ao criar tabelas: {e}", exc_info=True)
 
 # --- Função Auxiliar API OpenRouter ---
 def get_ai_response(messages_to_send: list) -> str:
     """Envia mensagens para a API OpenRouter e retorna a resposta da IA."""
-    if not OPENROUTER_API_KEY: raise ValueError("Chave API não configurada.")
+    if not OPENROUTER_API_KEY:
+        raise ValueError("Chave API não configurada.")
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}", 
         "Content-Type": "application/json", 
@@ -126,10 +153,14 @@ def get_ai_response(messages_to_send: list) -> str:
     except requests.exceptions.HTTPError as http_err:
         status_code = http_err.response.status_code
         logging.error(f"Erro HTTP da API OpenRouter: {status_code} - {http_err.response.text}")
-        if status_code == 401: raise PermissionError("Erro de autenticação com a API.")
-        elif status_code == 402: raise ConnectionRefusedError("Problema de crédito ou limite excedido na API.")
-        elif status_code == 429: raise ConnectionRefusedError("Limite de taxa (rate limit) da API excedido.")
-        else: raise ConnectionError(f"Erro na comunicação com a API ({status_code}).")
+        if status_code == 401:
+            raise PermissionError("Erro de autenticação com a API.")
+        elif status_code == 402:
+            raise ConnectionRefusedError("Problema de crédito ou limite excedido na API.")
+        elif status_code == 429:
+            raise ConnectionRefusedError("Limite de taxa (rate limit) da API excedido.")
+        else:
+            raise ConnectionError(f"Erro na comunicação com a API ({status_code}).")
     except requests.exceptions.RequestException as e:
         logging.error(f"Erro de rede ao conectar com a API OpenRouter: {e}")
         raise ConnectionError("Erro de rede ao conectar com a IA.")
@@ -145,7 +176,7 @@ def index():
 
 @app.route("/instalar") 
 def instalar():
-    if session.get('acesso_concluido') and session.get('user_token'): 
+    if session.get('acesso_concluido') and session.get('user_token'):
         return redirect(url_for('dra_ana_route'))
     return render_template("formulario_acesso.html", exibir_instalador=True)
 
@@ -158,28 +189,61 @@ def acesso_usuario():
         if not nome or not telefone:
             return render_template("formulario_acesso.html", sucesso=False, erro="Nome e telefone são obrigatórios."), 400
         dias = 7 
+        
+        # --- Modificação 2: Substituir bloco try/except na rota /acesso ---
+        token_final_sessao = None  # Guarda o token que irá para a sessão
+
+        # Bloco try/except para chamar as funções do painel
         try:
-            token_gerado = None
             if PAINEL_IMPORTADO:
+                # 1. Tenta INSERIR (cadastrar) novo token
+                logging.debug(f"Tentando inserir token para Tel='***{telefone[-4:]}'")
                 token_gerado = inserir_token(nome=nome, telefone=telefone, dias_validade=dias)
+
+                if token_gerado:
+                    # Sucesso na inserção (novo usuário)
+                    token_final_sessao = token_gerado
+                    logging.info(f"Novo Acesso OK: N='{nome}', T='***{telefone[-4:]}', Token='{token_final_sessao[:8]}...'")
+                else:
+                    # Inserção falhou (provavelmente telefone duplicado)
+                    logging.warning(f"Falha ao inserir token N='{nome}', T='***{telefone[-4:]}'. Buscando token ativo...")
+                    # 2. Tenta BUSCAR token ativo existente para o telefone
+                    #    (Usa a função buscar_token_ativo_por_telefone importada)
+                    token_existente = buscar_token_ativo_por_telefone(telefone_a_buscar=telefone)
+
+                    if token_existente:
+                        # Sucesso na busca (usuário existente com token ativo) -> LOGIN
+                        token_final_sessao = token_existente
+                        logging.info(f"Re-Acesso OK (token existente): T='***{telefone[-4:]}', Token='{token_final_sessao[:8]}...'")
+                    else:
+                        # Falha na busca (tel existe mas token inativo/expirado/erro)
+                        logging.warning(f"Nenhum token ativo para T='***{telefone[-4:]}' após falha inserção.")
+                        return render_template("formulario_acesso.html", sucesso=False, erro="Seu telefone já está cadastrado, mas o acesso está inativo ou expirou. Contate o suporte."), 400
             else:
-                logging.warning("Simulando token (painel não importado).")
-                token_gerado = f"fake_{nome}_{telefone}" 
-            if token_gerado:
+                # Se PAINEL_IMPORTADO for False (usando placeholders)
+                logging.warning("Simulando login (painel não importado).")
+                token_final_sessao = f"fake_login_{nome}_{telefone[-4:]}"
+            
+            # 3. Se temos um token (novo ou existente), salva na sessão e redireciona
+            if token_final_sessao:
                 session['acesso_concluido'] = True
-                session['user_token'] = token_gerado 
-                logging.info(f"Acesso OK: Nome='{nome}', Tel='***{telefone[-4:]}', Token='{token_gerado[:8]}...'")
+                session['user_token'] = token_final_sessao 
                 return redirect(url_for('dra_ana_route'))
             else:
-                logging.warning(f"Falha ao gerar token para Nome='{nome}', Tel='***{telefone[-4:]}'. Telefone pode já existir.")
-                return render_template("formulario_acesso.html", sucesso=False, erro="Telefone já cadastrado ou erro ao gerar acesso. Tente novamente ou contate o suporte."), 400
+                logging.error(f"Erro inesperado no fluxo acesso/login T='***{telefone[-4:]}'")
+                return render_template("formulario_acesso.html", sucesso=False, erro="Erro inesperado no acesso."), 500
+
         except Exception as e:
-            logging.error(f"Erro crítico ao processar acesso para Nome='{nome}', Tel='***{telefone[-4:]}': {e}", exc_info=True)
-            return render_template("formulario_acesso.html", sucesso=False, erro="Erro interno ao processar seu acesso. Tente mais tarde."), 500
+            logging.error(f"Erro crítico acesso/login N='{nome}', T='***{telefone[-4:]}': {e}", exc_info=True)
+            return render_template("formulario_acesso.html", sucesso=False, erro="Erro interno. Tente mais tarde."), 500
+
+    # Bloco GET permanece inalterado:
     if session.get('acesso_concluido') and session.get('user_token'):
         return redirect(url_for('dra_ana_route'))
     else:
-        session.pop('acesso_concluido', None); session.pop('user_token', None); session.modified=True
+        session.pop('acesso_concluido', None)
+        session.pop('user_token', None)
+        session.modified = True
         return render_template("formulario_acesso.html", sucesso=False)
 
 @app.route("/dra-ana") 
@@ -189,13 +253,15 @@ def dra_ana_route():
     acesso_ok = session.get('acesso_concluido')
     if not acesso_ok or not user_token:
         logging.debug("Tentativa de acesso a /dra-ana sem token/flag na sessão.")
-        return redirect(url_for('instalar')) 
-    if PAINEL_IMPORTADO: 
+        return redirect(url_for('instalar'))
+    if PAINEL_IMPORTADO:
         if not verificar_token_valido(user_token):
             logging.warning(f"Acesso negado a /dra-ana: Token inválido ou expirado ({user_token[:8]}...). Removendo da sessão.")
-            session.pop('acesso_concluido', None); session.pop('user_token', None); session.modified = True
-            flash("Seu acesso expirou ou é inválido. Por favor, acesse novamente.", "warning") 
-            return redirect(url_for('instalar')) 
+            session.pop('acesso_concluido', None)
+            session.pop('user_token', None)
+            session.modified = True
+            flash("Seu acesso expirou ou é inválido. Por favor, acesse novamente.", "warning")
+            return redirect(url_for('instalar'))
     logging.debug(f"Acesso permitido a /dra-ana para token {user_token[:8]}...")
     return render_template("chat.html")
 
@@ -212,47 +278,48 @@ def chat_endpoint():
         is_valid_token = verificar_token_valido(user_token)
     if not is_valid_token:
         logging.warning(f"API /chat: Acesso negado (Token inválido ou expirado: {user_token[:8]}...). Removendo da sessão.")
-        session.pop('acesso_concluido', None); session.pop('user_token', None); session.modified = True
+        session.pop('acesso_concluido', None)
+        session.pop('user_token', None)
+        session.modified = True
         return jsonify({"error": "Token inválido ou expirado"}), 403
     try:
         data = request.get_json()
         if not data or "mensagem" not in data:
-             logging.warning(f"API /chat: Payload inválido ou sem 'mensagem'. T:{user_token[:8]}")
-             return jsonify({"error": "Requisição inválida"}), 400
+            logging.warning(f"API /chat: Payload inválido ou sem 'mensagem'. T:{user_token[:8]}")
+            return jsonify({"error": "Requisição inválida"}), 400
         user_message = data.get("mensagem")
         if not isinstance(user_message, str) or not user_message.strip():
             logging.warning(f"API /chat: Mensagem vazia recebida. T:{user_token[:8]}")
             return jsonify({"error": "Mensagem não pode ser vazia"}), 400
         logging.info(f"Msg Recebida (T:{user_token[:8]}): {user_message[:100]}...")
-        if PAINEL_IMPORTADO: 
+        if PAINEL_IMPORTADO:
             add_chat_message(user_token, 'user', user_message)
-        else: 
+        else:
             logging.warning("Placeholder: Não salvando msg user.")
-        chat_history=[]
-        if PAINEL_IMPORTADO: 
-            chat_history=get_chat_history(user_token,limit=20)
-        else: 
+        chat_history = []
+        if PAINEL_IMPORTADO:
+            chat_history = get_chat_history(user_token, limit=20)
+        else:
             logging.warning("Placeholder: Não buscando histórico.")
-        messages_to_send=[{"role":"system","content":SYSTEM_PROMPT}] + chat_history
+        messages_to_send = [{"role": "system", "content": SYSTEM_PROMPT}] + chat_history
         try:
             ai_response = get_ai_response(messages_to_send)
-            if PAINEL_IMPORTADO: 
-                add_chat_message(user_token,'assistant', ai_response)
-            else: 
+            if PAINEL_IMPORTADO:
+                add_chat_message(user_token, 'assistant', ai_response)
+            else:
                 logging.warning("Placeholder: Não salvando msg assistant.")
             return jsonify({"response": ai_response})
-        except(ValueError, ConnectionError, PermissionError, TimeoutError, ConnectionRefusedError) as e: 
+        except (ValueError, ConnectionError, PermissionError, TimeoutError, ConnectionRefusedError) as e:
             error_message = str(e)
-            status_code = 503 if isinstance(e,(TimeoutError, ConnectionError, ConnectionRefusedError)) else \
-                          401 if isinstance(e, PermissionError) else \
-                          500 
+            status_code = 503 if isinstance(e, (TimeoutError, ConnectionError, ConnectionRefusedError)) else \
+                          401 if isinstance(e, PermissionError) else 500
             logging.error(f"API /chat: Erro ao chamar IA para T:{user_token[:8]}...: {error_message}")
-            return jsonify({"error":f"Erro ao comunicar com a IA: {error_message}"}), status_code
-        except Exception as e: 
-            logging.exception(f"API /chat: Erro inesperado no call get_ai_response T:{user_token[:8]}..."); 
+            return jsonify({"error": f"Erro ao comunicar com a IA: {error_message}"}), status_code
+        except Exception as e:
+            logging.exception(f"API /chat: Erro inesperado no call get_ai_response T:{user_token[:8]}...")
             return jsonify({"error": "Erro interno ao processar na IA."}), 500
-    except Exception as e: 
-        logging.exception(f"API /chat: Erro geral no processamento T:{user_token[:8]}..."); 
+    except Exception as e:
+        logging.exception(f"API /chat: Erro geral no processamento T:{user_token[:8]}...")
         return jsonify({"error": "Erro interno no servidor."}), 500
 
 # --- Rotas do Painel Admin ---
@@ -262,21 +329,21 @@ def login():
     """Página de login do painel admin."""
     # Adiciona render_template para GET
     if request.method == 'GET':
-        return render_template('login.html') # Supõe que existe um login.html
+        return render_template('login.html')  # Supõe que existe um login.html
 
     # Lógica POST continua a mesma
     senha_digitada = request.form.get("senha")
     senha_painel = os.getenv("PAINEL_SENHA")
-    if not senha_painel: 
+    if not senha_painel:
         logging.error("PAINEL_SENHA não configurada no ambiente!")
         flash("Erro de configuração interna do servidor.", "danger")
         return render_template("login.html", erro="Erro config."), 500
-    if senha_digitada == senha_painel: 
+    if senha_digitada == senha_painel:
         session["autenticado"] = True
         logging.info("Admin autenticado com sucesso.")
         flash("Login realizado com sucesso!", "success")
         return redirect(url_for("painel"))
-    else: 
+    else:
         logging.warning("Tentativa de login no painel falhou (senha incorreta).")
         flash("Senha incorreta.", "danger")
         return render_template("login.html", erro="Senha incorreta"), 401
@@ -294,12 +361,12 @@ def logout():
 @app.route("/painel", methods=["GET", "POST"]) 
 def painel():
     """Página principal do painel admin."""
-    if not session.get("autenticado"): 
+    if not session.get("autenticado"):
         return redirect(url_for("login"))
 
     token_gerado_str = None 
     erro_painel = "" 
-    
+
     if request.method == "POST":
         # Lógica POST para criar token (já ajustada)
         nome_novo_token = request.form.get("nome")
@@ -308,7 +375,7 @@ def painel():
         if not nome_novo_token or not telefone_novo_token:
             flash("Nome e telefone são obrigatórios para criar token.", "danger")
         elif not dias_str.isdigit() or int(dias_str) <= 0:
-             flash("Número de dias de validade inválido.", "danger")
+            flash("Número de dias de validade inválido.", "danger")
         else:
             dias = int(dias_str)
             try:
@@ -322,11 +389,11 @@ def painel():
                         flash(f"Erro ao gerar token para {nome_novo_token} (verifique se o telefone já existe).", "warning")
                         logging.warning(f"Admin falhou gerar token: N='{nome_novo_token}', T='***{telefone_novo_token[-4:]}'. Duplicado/erro.")
                 else:
-                     flash("Erro: Módulo do painel não carregado.", "danger")
+                    flash("Erro: Módulo do painel não carregado.", "danger")
             except Exception as e:
                 logging.exception("Erro inesperado ao gerar token pelo painel.")
                 flash("Erro inesperado no servidor ao gerar token.", "danger")
-        return redirect(url_for('painel')) # Redireciona após POST
+        return redirect(url_for('painel'))  # Redireciona após POST
 
     # Lógica GET (busca tokens sempre)
     tokens = []
@@ -334,29 +401,27 @@ def painel():
         if PAINEL_IMPORTADO:
             tokens = listar_tokens()
         else:
-            # Erro não flash, pois é exibido diretamente se não houver tokens
-            erro_painel="Painel não importado, não pode listar tokens." 
+            erro_painel = "Painel não importado, não pode listar tokens."
     except Exception as e:
         logging.exception("Erro ao listar tokens para o painel.")
-        erro_painel="Erro ao buscar lista de tokens." # Erro não flash
+        erro_painel = "Erro ao buscar lista de tokens."
 
-    now_tz = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC');
+    now_tz = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
     if PYTZ_IMPORTADO:
         try: 
-            now_tz=datetime.now(timezone("America/Sao_Paulo")).strftime('%Y-%m-%d %H:%M:%S %Z%z')
+            now_tz = datetime.now(timezone("America/Sao_Paulo")).strftime('%Y-%m-%d %H:%M:%S %Z%z')
         except Exception as e: 
             logging.warning(f"Erro timezone: {e}. Usando UTC.")
 
-    # Renderiza template no GET
     return render_template("painel.html",
                            tokens=tokens, 
                            now=now_tz,
-                           erro=erro_painel) # Passa erros não-flash
+                           erro=erro_painel)
 
 @app.route("/excluir_token", methods=["POST"]) 
 def excluir_token_route():
     """Processa a exclusão de um token."""
-    if not session.get("autenticado"): 
+    if not session.get("autenticado"):
         flash("Acesso não autorizado.", "warning")
         return redirect(url_for("login"))
     token_para_excluir = request.form.get("token")
@@ -371,8 +436,8 @@ def excluir_token_route():
                     flash(f"Token {token_para_excluir[:8]}... não encontrado para exclusão.", "warning")
                     logging.warning(f"Admin tentou excluir token não encontrado: {token_para_excluir[:8]}...")
             except Exception as e:
-                 logging.exception(f"Erro ao excluir token {token_para_excluir[:8]}...")
-                 flash("Erro interno ao tentar excluir token.", "danger")
+                logging.exception(f"Erro ao excluir token {token_para_excluir[:8]}...")
+                flash("Erro interno ao tentar excluir token.", "danger")
         else:
             flash("Erro: Módulo do painel não carregado.", "danger")
     else:
@@ -394,8 +459,8 @@ def atualizar_token_route():
     try:
         dias_int = int(dias_para_adicionar_str)
         if dias_int <= 0:
-             flash("Erro: Número de dias deve ser positivo.", "danger")
-             return redirect(url_for("painel"))
+            flash("Erro: Número de dias deve ser positivo.", "danger")
+            return redirect(url_for("painel"))
     except ValueError:
         flash("Erro: Número de dias inválido.", "danger")
         return redirect(url_for("painel"))
@@ -418,9 +483,9 @@ def atualizar_token_route():
 @app.route("/resetar_acesso") 
 def resetar_acesso():
     """Limpa a sessão de acesso do usuário."""
-    session.pop('acesso_concluido', None) 
-    session.pop('user_token', None) 
-    session.modified=True
+    session.pop('acesso_concluido', None)
+    session.pop('user_token', None)
+    session.modified = True
     logging.info("Sessão de acesso resetada a pedido.")
     return "Sessão de acesso resetada. <a href='/'>Voltar ao início</a>"
 
