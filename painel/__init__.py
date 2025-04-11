@@ -1,9 +1,9 @@
-# painel/__init__.py (VERSÃO CORRIGIDA)
+# painel/__init__.py (VERSÃO PARA CORRIGIR RE-ACESSO - BASE OK + buscar_token_ativo_por_telefone)
 
 import os
 import psycopg2
 from dotenv import load_dotenv
-from datetime import datetime, timedelta, timezone  # Import timezone from datetime
+from datetime import datetime, timedelta, timezone # Import timezone from datetime
 import secrets
 import logging
 
@@ -29,6 +29,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 def criar_tabela_tokens():
     """Cria a tabela de tokens de acesso (nova estrutura com nome e telefone), se não existir."""
+    # Código completo da sua versão que funcionava
     if not DATABASE_URL:
         logging.error("DATABASE_URL não definida. Impossível criar tabela 'tokens'.")
         return
@@ -64,6 +65,7 @@ def criar_tabela_tokens():
 
 def gerar_token():
     """Gera um token seguro."""
+    # Código completo da sua versão que funcionava
     return secrets.token_urlsafe(16)
 
 def inserir_token(nome: str, telefone: str, dias_validade: int) -> str | None:
@@ -72,6 +74,7 @@ def inserir_token(nome: str, telefone: str, dias_validade: int) -> str | None:
     Retorna o token gerado em caso de sucesso.
     Retorna None em caso de erro OU se o telefone já existir no banco.
     """
+    # Código completo da sua versão que funcionava
     if not DATABASE_URL:
         logging.error("DATABASE_URL não definida...")
         return None
@@ -116,6 +119,7 @@ def listar_tokens() -> list[tuple[str, str, str, str | None, str | None]]:
     Lista todos os tokens do banco, retornando nome, telefone, token e datas formatadas.
     Retorna uma lista de tuplas: [(nome, telefone, token, criado_em_str, validade_em_str), ...]
     """
+    # Código completo da sua versão que funcionava
     if not DATABASE_URL:
         logging.error("DB URL não definida...")
         return []
@@ -159,6 +163,7 @@ def listar_tokens() -> list[tuple[str, str, str, str | None, str | None]]:
 
 def excluir_token(token: str) -> bool:
     """Exclui um token específico do banco."""
+    # Código completo da sua versão que funcionava
     if not DATABASE_URL or not token:
         logging.error("DB URL/token ausente.")
         return False
@@ -195,6 +200,7 @@ def verificar_token_valido(token_a_verificar: str) -> bool:
     Verifica se um token existe no banco de dados e se ainda está dentro do prazo de validade.
     Retorna True se o token existe e é válido, False caso contrário.
     """
+    # Código completo da sua versão que funcionava
     if not DATABASE_URL:
         logging.error("DATABASE_URL não definida...")
         return False
@@ -231,75 +237,108 @@ def verificar_token_valido(token_a_verificar: str) -> bool:
         if conn:
             conn.close()
 
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# 👇👇👇 FUNÇÃO ADICIONADA (Passo 3.1) 👇👇👇
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# --- Função atualizar_validade_token (Passo 3.1 - Mantida aqui para referência, mas pode remover se não quiser a funcionalidade agora) ---
 def atualizar_validade_token(token_a_atualizar: str, dias_a_adicionar: int) -> bool:
     """
     Atualiza a data de validade de um token existente, adicionando dias a partir de AGORA.
     Retorna True se o token foi encontrado e atualizado, False caso contrário.
     """
-    if not DATABASE_URL:
-        logging.error("DATABASE_URL não definida. Impossível atualizar token.")
-        return False
-    if not token_a_atualizar:
-        logging.warning("Tentativa de atualizar token vazio.")
-        return False
+    # Código completo da sua versão que funcionava
+    if not DATABASE_URL: logging.error("DATABASE_URL não definida..."); return False
+    if not token_a_atualizar: logging.warning("Tentativa atualizar token vazio."); return False
     try:
-        # Garante que dias_a_adicionar seja um inteiro positivo
-        dias_int = int(dias_a_adicionar)
-        if dias_int <= 0:
-            logging.warning(f"Tentativa de atualizar token {token_a_atualizar[:8]} com dias <= 0 ({dias_int}).")
-            return False
-    except (ValueError, TypeError):
-        logging.warning(f"Tentativa de atualizar token {token_a_atualizar[:8]} com dias inválidos ({dias_a_adicionar}).")
-        return False
-        
+        dias_int = int(dias_a_adicionar);
+        if dias_int <= 0: logging.warning(f"Dias <= 0 ({dias_int}) p/ token {token_a_atualizar[:8]}"); return False
+    except (ValueError, TypeError): logging.warning(f"Dias inválidos ({dias_a_adicionar}) p/ token {token_a_atualizar[:8]}"); return False
     conn = None
     try:
-        # Calcula a nova data de validade a partir de AGORA (UTC)
-        agora_utc = datetime.now(timezone.utc)
-        nova_validade_utc = agora_utc + timedelta(days=dias_int)
-
+        agora_utc = datetime.now(timezone.utc); nova_validade_utc = agora_utc + timedelta(days=dias_int)
         conn = psycopg2.connect(DATABASE_URL)
         with conn.cursor() as cur:
-            # Executa o UPDATE na tabela tokens
-            cur.execute(
-                """
-                UPDATE tokens 
-                SET validade_em = %s 
-                WHERE token = %s
-                """,
-                (nova_validade_utc, token_a_atualizar)
-            )
-            
-            # Verifica se alguma linha foi realmente atualizada
-            rowcount = cur.rowcount
-            
+            cur.execute(""" UPDATE tokens SET validade_em = %s WHERE token = %s """, (nova_validade_utc, token_a_atualizar))
+            rowcount = cur.rowcount 
         if rowcount > 0:
-            conn.commit()  # Confirma a transação SOMENTE se algo foi atualizado
-            logging.info(f"Validade do token {token_a_atualizar[:8]}... atualizada para {nova_validade_utc} ({rowcount} linha(s) afetada(s)).")
-            return True  # Sucesso na atualização
-        else:
-            # Se rowcount é 0, o token não foi encontrado no banco
-            logging.warning(f"Token {token_a_atualizar[:8]}... não encontrado para atualização de validade.")
-            return False  # Falha (token não encontrado)
-
-    except psycopg2.Error as e:
-        logging.exception(f"Erro de BD ao atualizar validade do token {token_a_atualizar[:8]}...: {e.pgcode} - {e.pgerror}")
-        if conn:
-            conn.rollback()
+            conn.commit(); logging.info(f"Validade token {token_a_atualizar[:8]} atualizada p/ {nova_validade_utc} ({rowcount} linha(s)).")
+            return True
+        else: logging.warning(f"Token {token_a_atualizar[:8]} não encontrado p/ att validade."); return False
+    except psycopg2.Error as e: 
+        logging.exception(f"Erro BD att validade token {token_a_atualizar[:8]}: {e.pgcode} - {e.pgerror}");
+        if conn: 
+            conn.rollback() 
         return False
-    except Exception as e:
-        logging.exception(f"Erro inesperado ao atualizar validade do token {token_a_atualizar[:8]}...")
-        if conn:
-            conn.rollback()
+    except Exception as e: 
+        logging.exception(f"Erro inesperado att validade token {token_a_atualizar[:8]}");
+        if conn: 
+            conn.rollback() 
         return False
     finally:
-        if conn:
+        if conn: 
             conn.close()
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# 👇👇👇 NOVA FUNÇÃO ADICIONADA (Solução Re-acesso) 👇👇👇
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def buscar_token_ativo_por_telefone(telefone_a_buscar: str) -> str | None:
+    """
+    Busca no banco se existe um token ATIVO associado a um número de telefone.
+    Retorna a string do primeiro token ativo encontrado, ou None se nenhum for encontrado.
+    """
+    # Código completo, sem omissões
+    if not DATABASE_URL:
+        logging.error("DATABASE_URL não definida. Impossível buscar token por telefone.")
+        return None
+    if not telefone_a_buscar:
+        logging.warning("Tentativa de buscar token com telefone vazio.")
+        return None
+
+    conn = None
+    resultados = []
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT token, validade_em FROM tokens WHERE telefone = %s
+                """,
+                (telefone_a_buscar,)
+            )
+            resultados = cur.fetchall() 
+
+        if not resultados:
+            logging.info(f"Nenhum token encontrado para o telefone ***{telefone_a_buscar[-4:]}")
+            return None 
+
+        agora_utc = datetime.now(timezone.utc)
+        token_valido_encontrado = None
+        for token_encontrado, validade_db in resultados:
+            if validade_db and agora_utc < validade_db:
+                 logging.info(f"Token ativo encontrado para tel ***{telefone_a_buscar[-4:]}: {token_encontrado[:8]}...")
+                 token_valido_encontrado = token_encontrado
+                 break 
+            elif validade_db:
+                 logging.debug(f"Token {token_encontrado[:8]} encontrado para tel ***{telefone_a_buscar[-4:]}, mas está expirado ({validade_db}).")
+            else:
+                 logging.debug(f"Token {token_encontrado[:8]} encontrado para tel ***{telefone_a_buscar[-4:]}, mas sem data de validade.")
+        
+        if token_valido_encontrado:
+            return token_valido_encontrado
+        else:
+            logging.warning(f"Telefone ***{telefone_a_buscar[-4:]} encontrado, mas nenhum token ativo associado.")
+            return None
+
+    except psycopg2.Error as e:
+        logging.exception(f"Erro de BD ao buscar token por telefone ***{telefone_a_buscar[-4:]}: {e.pgcode} - {e.pgerror}")
+        return None 
+    except Exception as e:
+        logging.exception(f"Erro inesperado ao buscar token por telefone ***{telefone_a_buscar[-4:]}")
+        return None 
+    finally:
+        if conn and not conn.closed: 
+            conn.close()
+
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-# 👆👆👆 FUNÇÃO ADICIONADA (Passo 3.1) 👆👆👆
+# 👆👆👆 NOVA FUNÇÃO ADICIONADA (Solução Re-acesso) 👆👆👆
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
@@ -307,7 +346,8 @@ def atualizar_validade_token(token_a_atualizar: str, dias_a_adicionar: int) -> b
 
 def criar_tabela_chat_history():
     """Cria a tabela para armazenar o histórico de chat, se não existir."""
-    if not DATABASE_URL:
+    # Código completo da sua versão que funcionava
+    if not DATABASE_URL: 
         logging.error("DATABASE_URL não definida. Impossível criar tabela 'chat_messages'.")
         return
     conn = None
@@ -331,19 +371,17 @@ def criar_tabela_chat_history():
         logging.info("Tabela 'chat_messages' verificada/criada com sucesso.")
     except psycopg2.Error as e:
         logging.exception(f"Erro BD criar/verificar 'chat_messages': {e.pgcode} - {e.pgerror}")
-        if conn:
-            conn.rollback()
+        if conn: conn.rollback()
     except Exception as e:
         logging.exception("Erro inesperado criar/verificar 'chat_messages'")
-        if conn:
-            conn.rollback()
+        if conn: conn.rollback()
     finally:
-        if conn:
-            conn.close()
+        if conn: conn.close()
 
 def add_chat_message(user_token: str, role: str, content: str) -> bool:
     """Adiciona uma mensagem (user ou assistant) ao histórico no banco."""
-    if not DATABASE_URL or not user_token or role not in ('user', 'assistant') or content is None:
+    # Código completo da sua versão que funcionava
+    if not DATABASE_URL or not user_token or role not in ('user', 'assistant') or content is None: 
         logging.warning(f"Tentativa msg chat inválida. T:{user_token[:8] if user_token else 'N/A'} R:{role} C:{content is None}")
         return False
     conn = None
@@ -351,7 +389,7 @@ def add_chat_message(user_token: str, role: str, content: str) -> bool:
         conn = psycopg2.connect(DATABASE_URL)
         with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO chat_messages (user_token, role, content) VALUES (%s, %s, %s)""",
+                """INSERT INTO chat_messages (user_token, role, content) VALUES (%s, %s, %s)""", 
                 (user_token, role, content)
             )
         conn.commit()
@@ -359,22 +397,19 @@ def add_chat_message(user_token: str, role: str, content: str) -> bool:
         return True
     except psycopg2.Error as e:
         logging.exception(f"Erro BD salvar msg T:{user_token[:8]} R:{role}: {e.pgcode} - {e.pgerror}")
-        if conn:
-            conn.rollback()
+        if conn: conn.rollback()
         return False
     except Exception as e:
         logging.exception(f"Erro inesperado salvar msg T:{user_token[:8]} R:{role}")
-        if conn:
-            conn.rollback()
+        if conn: conn.rollback()
         return False
     finally:
-        if conn:
-            conn.close()
+        if conn: conn.close()
 
 def get_chat_history(user_token: str, limit: int = 20) -> list:
     """Busca as últimas 'limit' mensagens (pares user/assistant) para um token."""
-    if not DATABASE_URL or not user_token:
-        return []
+    # Código completo da sua versão que funcionava
+    if not DATABASE_URL or not user_token: return []
     conn = None
     history = []
     try:
@@ -398,6 +433,5 @@ def get_chat_history(user_token: str, limit: int = 20) -> list:
     except Exception as e:
         logging.exception(f"Erro inesperado buscar hist T:{user_token[:8]}")
     finally:
-        if conn:
-            conn.close()
+        if conn: conn.close()
     return history
