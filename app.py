@@ -67,7 +67,7 @@ if app.secret_key == "configure-uma-chave-secreta-forte-no-env": logging.warning
 # Configurações da IA 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-AI_MODEL = "deepseek/deepseek-chat-v3-0324" 
+AI_MODEL = "openai/chatgpt-4o-latest" 
 logging.info(f"Usando modelo de IA: {AI_MODEL}")
 
 # Ler SYSTEM_PROMPT do arquivo 
