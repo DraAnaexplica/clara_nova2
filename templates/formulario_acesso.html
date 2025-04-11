@@ -25,12 +25,12 @@
         </script>
 
     {% elif exibir_instalador %}
-        <h2>Instalar Aplicativo Clara</h2>
+        <h2>Dra.Ana explica</h2>
         <p>Clique no botão abaixo para adicionar o aplicativo à sua área de trabalho.<br><strong>Uma pequena janela de confirmação do navegador irá aparecer.</strong></p>
         <button class="btn" id="instalarBtn">Instalar Aplicativo</button>
 
     {% else %}
-        <h2>Acessar Clara</h2>
+        <h2>Acessar Dra.Ana</h2>
         {% if erro %}
         <div class="erro">{{ erro }}</div> {% endif %}
         <form method="POST" action="{{ url_for('acesso_usuario') }}">
