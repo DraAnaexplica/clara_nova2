@@ -293,7 +293,8 @@ def chat_endpoint():
             return jsonify({"error": "Mensagem não pode ser vazia"}), 400
         logging.info(f"Msg Recebida (T:{user_token[:8]}): {user_message[:100]}...")
         if PAINEL_IMPORTADO:
-            add_chat_message(user_token, 'user', user_message)
+            telefone = session.get('telefone') or 'indefinido'
+    add_chat_message(telefone, 'user', user_message)
         else:
             logging.warning("Placeholder: Não salvando msg user.")
         chat_history = []
@@ -305,7 +306,7 @@ def chat_endpoint():
         try:
             ai_response = get_ai_response(messages_to_send)
             if PAINEL_IMPORTADO:
-                add_chat_message(user_token, 'assistant', ai_response)
+                add_chat_message(telefone, 'assistant', ai_response)
             else:
                 logging.warning("Placeholder: Não salvando msg assistant.")
             return jsonify({"response": ai_response})
