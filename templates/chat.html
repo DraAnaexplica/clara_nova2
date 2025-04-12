@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <!-- Mantemos suas meta tags, estilo, fontes e scripts -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Dra. Ana - Chat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='chat_style.css') }}">
@@ -23,11 +24,11 @@
                 </div>
             </div>
             <div class="header-right">
-                <!-- Elementos adicionais se necessário -->
+                <!-- Espaço para adicionar outros elementos se necessário -->
             </div>
         </header>
 
-        <!-- Área do chat: Renderiza o histórico, se existir -->
+        <!-- Área do chat que renderiza o histórico -->
         <main id="chat-box" class="chat-area">
             {% if chat_history %}
                 {% for msg in chat_history %}
@@ -37,7 +38,6 @@
                     </div>
                 {% endfor %}
             {% else %}
-                <!-- Se não houver histórico, você pode exibir uma mensagem opcional -->
                 <p class="no-history">Nenhuma mensagem registrada ainda.</p>
             {% endif %}
         </main>
@@ -45,13 +45,9 @@
         <!-- Formulário de envio de mensagem -->
         <form id="mensagem-form" class="input-container">
             <div class="input-wrapper">
-                <button type="button" class="emoji-btn" aria-label="Escolher emoji">
-                    <i class="far fa-smile"></i>
-                </button>
+                <button type="button" class="emoji-btn" aria-label="Escolher emoji"><i class="far fa-smile"></i></button>
                 <input type="text" id="mensagem" name="mensagem" placeholder="Digite uma mensagem" required aria-label="Digite sua mensagem" autocomplete="off">
-                <button type="button" class="attach-btn" aria-label="Anexar arquivo">
-                    <i class="fas fa-paperclip"></i>
-                </button>
+                <button type="button" class="attach-btn" aria-label="Anexar arquivo"><i class="fas fa-paperclip"></i></button>
             </div>
             <button type="submit" class="send-btn" aria-label="Enviar mensagem">
                 <i class="fas fa-microphone"></i>
@@ -59,12 +55,10 @@
         </form>
     </div>
 
-    <!-- Garantir que, ao abrir a área de chat, o LocalStorage marque acesso concedido -->
+    <!-- Script para marcar que o acesso foi concedido, assim o usuário não vê o formulário novamente -->
     <script>
       localStorage.setItem("accessGranted", "true");
     </script>
-
-    <!-- Carrega o arquivo chat.js -->
     <script src="{{ url_for('static', filename='chat.js') }}" defer></script>
 </body>
 </html>
