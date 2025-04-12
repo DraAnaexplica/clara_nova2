@@ -293,8 +293,7 @@ def chat_endpoint():
             return jsonify({"error": "Mensagem não pode ser vazia"}), 400
         logging.info(f"Msg Recebida (T:{user_token[:8]}): {user_message[:100]}...")
         if PAINEL_IMPORTADO:
-            telefone = session.get('telefone') or 'indefinido'
-            add_chat_message(telefone, 'user', user_message)
+            add_chat_message(user_token, 'user', user_message)
         else:
             logging.warning("Placeholder: Não salvando msg user.")
         chat_history = []
@@ -306,7 +305,7 @@ def chat_endpoint():
         try:
             ai_response = get_ai_response(messages_to_send)
             if PAINEL_IMPORTADO:
-                add_chat_message(telefone, 'assistant', ai_response)
+                add_chat_message(user_token, 'assistant', ai_response)
             else:
                 logging.warning("Placeholder: Não salvando msg assistant.")
             return jsonify({"response": ai_response})
@@ -496,14 +495,3 @@ if __name__ == "__main__":
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() in ['true', '1', 't']
     logging.info(f"Iniciando app Flask em host=0.0.0.0, port={port}, debug={debug_mode}")
     app.run(debug=debug_mode, host='0.0.0.0', port=port)
-
-@app.route("/get_historico", methods=["POST"])
-def get_historico():
-    data = request.get_json()
-    telefone = data.get("telefone")
-
-    if not telefone:
-        return jsonify({"status": "erro", "mensagem": "Telefone não enviado"}), 400
-
-    historico = get_chat_history(telefone)
-    return jsonify(historico)
