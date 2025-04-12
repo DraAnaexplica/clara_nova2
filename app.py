@@ -294,7 +294,7 @@ def chat_endpoint():
         logging.info(f"Msg Recebida (T:{user_token[:8]}): {user_message[:100]}...")
         if PAINEL_IMPORTADO:
             telefone = session.get('telefone') or 'indefinido'
-    add_chat_message(telefone, 'user', user_message)
+            add_chat_message(telefone, 'user', user_message)
         else:
             logging.warning("Placeholder: Não salvando msg user.")
         chat_history = []
