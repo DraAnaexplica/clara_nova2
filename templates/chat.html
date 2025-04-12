@@ -2,47 +2,39 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <!-- Mantemos suas meta tags, estilo, fontes e scripts -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Dra. Ana - Chat</title>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='chat_style.css') }}">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+
 </head>
 <body>
     <div class="app-container">
         <header>
             <div class="header-left">
                 <img id="profile-pic" src="{{ url_for('static', filename='clara_icon.png') }}" alt="Dra. Ana" class="avatar">
+
                 <div id="modal" class="modal">
-                    <span class="close">&times;</span>
-                    <img class="modal-content" id="modal-img">
+                  <span class="close">&times;</span>
+                  <img class="modal-content" id="modal-img">
                 </div>
+
                 <div class="contact-info">
                     <h1>Dra. Ana</h1>
                     <p class="status" id="clara-status">online</p>
                 </div>
             </div>
             <div class="header-right">
-                <!-- Espaço para adicionar outros elementos se necessário -->
-            </div>
+                </div>
         </header>
 
-        <!-- Área do chat que renderiza o histórico -->
         <main id="chat-box" class="chat-area">
-            {% if chat_history %}
-                {% for msg in chat_history %}
-                    <div class="chat-message {{ msg.role }}">
-                        <div class="message-content">{{ msg.message | safe }}</div>
-                        <div class="timestamp">{{ msg.timestamp }}</div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p class="no-history">Nenhuma mensagem registrada ainda.</p>
-            {% endif %}
-        </main>
+             </main>
 
-        <!-- Formulário de envio de mensagem -->
         <form id="mensagem-form" class="input-container">
             <div class="input-wrapper">
                 <button type="button" class="emoji-btn" aria-label="Escolher emoji"><i class="far fa-smile"></i></button>
@@ -50,15 +42,11 @@
                 <button type="button" class="attach-btn" aria-label="Anexar arquivo"><i class="fas fa-paperclip"></i></button>
             </div>
             <button type="submit" class="send-btn" aria-label="Enviar mensagem">
-                <i class="fas fa-microphone"></i>
-            </button>
+                <i class="fas fa-microphone"></i> </button>
         </form>
     </div>
 
-    <!-- Script para marcar que o acesso foi concedido, assim o usuário não vê o formulário novamente -->
-    <script>
-      localStorage.setItem("accessGranted", "true");
-    </script>
     <script src="{{ url_for('static', filename='chat.js') }}" defer></script>
+
 </body>
 </html>
