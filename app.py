@@ -33,7 +33,7 @@ except ImportError as e:
     # Placeholders 
     def criar_tabela_tokens(): 
         logging.info("Placeholder: Criar tabela tokens")
-    def inserir_token(nome, telefone, dias): 
+    def inserir_token(nome, telefone, dias_validade): 
         logging.info(f"Placeholder: Inserir token {nome}/{telefone}")
         return f"fake_token_{nome}"
     def listar_tokens(): 
@@ -44,8 +44,8 @@ except ImportError as e:
     def verificar_token_valido(tok): 
         logging.warning(f"Placeholder: Verificando token {tok[:8]}...")
         return True
-    def atualizar_validade_token(tok, dias): 
-        logging.warning(f"Placeholder: Atualizando token {tok[:8]} +{dias}d")
+    def atualizar_validade_token(token_a_atualizar, dias_a_adicionar): 
+        logging.warning(f"Placeholder: Atualizando token {token_a_atualizar[:8]} +{dias_a_adicionar}d")
         return True
     def buscar_token_ativo_por_telefone(telefone_a_buscar): 
         logging.warning(f"Placeholder: Buscando T p/ tel ***{telefone_a_buscar[-4:]}")
@@ -130,7 +130,7 @@ def get_ai_response(messages_to_send: list) -> str:
     try: 
         logging.debug(f"Payload (parcial): {json.dumps(payload, ensure_ascii=False)[:500]}...")
     except Exception: 
-        logging.debug("Nao logou payload json.")
+        logging.debug("Não logou payload json.")
         
     try:
         response = requests.post(OPENROUTER_API_URL, headers=headers, json=payload, timeout=45)
@@ -208,7 +208,6 @@ def acesso_usuario():
                     # Inserção falhou (provavelmente telefone duplicado)
                     logging.warning(f"Falha ao inserir token N='{nome}', T='***{telefone[-4:]}'. Buscando token ativo...")
                     # 2. Tenta BUSCAR token ativo existente para o telefone
-                    #    (Usa a função buscar_token_ativo_por_telefone importada)
                     token_existente = buscar_token_ativo_por_telefone(telefone_a_buscar=telefone)
 
                     if token_existente:
@@ -263,7 +262,16 @@ def dra_ana_route():
             flash("Seu acesso expirou ou é inválido. Por favor, acesse novamente.", "warning")
             return redirect(url_for('instalar'))
     logging.debug(f"Acesso permitido a /dra-ana para token {user_token[:8]}...")
-    return render_template("chat.html")
+    
+    # --- Modificação para carregar o histórico do chat ---
+    chat_history = []
+    if PAINEL_IMPORTADO:
+        try:
+            chat_history = get_chat_history(user_token, lim=20)
+        except Exception as e:
+            logging.error("Erro ao carregar histórico do chat para token {}: {}".format(user_token[:8], e))
+    
+    return render_template("chat.html", chat_history=chat_history)
 
 @app.route("/chat", methods=["POST"]) 
 def chat_endpoint():
