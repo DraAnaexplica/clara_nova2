@@ -495,3 +495,12 @@ if __name__ == "__main__":
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() in ['true', '1', 't']
     logging.info(f"Iniciando app Flask em host=0.0.0.0, port={port}, debug={debug_mode}")
     app.run(debug=debug_mode, host='0.0.0.0', port=port)
+
+@app.route("/get_historico")
+def get_historico():
+    telefone = session.get("telefone")
+    if not telefone:
+        return jsonify({"status": "erro", "mensagem": "Telefone não encontrado na sessão"}), 400
+
+    historico = get_chat_history(telefone)
+    return jsonify(historico)
