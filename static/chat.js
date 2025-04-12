@@ -27,16 +27,7 @@
         if (!chatBox || !messageInput || !messageForm || !sendBtn || !claraStatusElement) {
              console.error("Erro: Elementos essenciais do chat não foram encontrados no DOM.");
              return; // Interrompe a inicialização se algo crítico faltar
-        
-        // Buscar histórico de mensagens ao carregar
-        fetch('/get_historico')
-            .then(res => res.json())
-            .then(historico => {
-                historico.forEach(msg => {
-                    adicionarMensagem(msg.remetente, msg.mensagem);
-                });
-            });
-}
+        }
 
         // Adiciona listeners do formulário e input
         messageForm.addEventListener("submit", sendMessage);
