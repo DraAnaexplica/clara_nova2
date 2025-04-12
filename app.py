@@ -2,7 +2,6 @@
 
 import os
 import requests
-# Importação do Flash adicionada
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash 
 from dotenv import load_dotenv
 import logging
@@ -16,13 +15,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 load_dotenv_success = load_dotenv(override=True, verbose=True)
 logging.info(f"Arquivo .env carregado com sucesso? {load_dotenv_success}")
 
-# --- Modificação 1: Adicionar Importação do buscar_token_ativo_por_telefone ---
+# --- Importação do módulo painel com funções necessárias ---
 try:
     from painel import ( 
         criar_tabela_tokens, inserir_token, listar_tokens, excluir_token, 
         verificar_token_valido, 
         atualizar_validade_token, 
-        buscar_token_ativo_por_telefone,  # <--- LINHA ADICIONADA/GARANTIDA
+        buscar_token_ativo_por_telefone,  # Importação garantida
         criar_tabela_chat_history, add_chat_message, get_chat_history 
     )
     PAINEL_IMPORTADO = True
@@ -30,7 +29,7 @@ try:
 except ImportError as e:
     logging.warning(f"Módulo 'painel' não encontrado ou com erro: {e}. Usando placeholders.")
     PAINEL_IMPORTADO = False
-    # Placeholders 
+    # Placeholders para funções do painel
     def criar_tabela_tokens(): 
         logging.info("Placeholder: Criar tabela tokens")
     def inserir_token(nome, telefone, dias_validade): 
@@ -61,19 +60,15 @@ except ImportError as e:
 
 # Importa pytz 
 try:
-    # Tenta importar o pytz real
     from pytz import timezone
     PYTZ_IMPORTADO = True
     logging.info("Biblioteca 'pytz' importada com sucesso.")
 except ImportError:
-    # 👇👇 BLOCO CORRIGIDO ABAIXO 👇👇
     logging.warning("Biblioteca 'pytz' não encontrada. Usando placeholder UTC.")
     PYTZ_IMPORTADO = False
-    # Define uma classe placeholder simples que não faz nada
     class timezone:
         def __init__(self, tz_name):
             logging.debug(f"Usando placeholder timezone para: {tz_name}")
-    # 👆👆 BLOCO CORRIGIDO ACIMA 👆👆
 
 # Configuração do App Flask 
 app = Flask(__name__)
@@ -102,7 +97,7 @@ except Exception as e:
 if not OPENROUTER_API_KEY:
     logging.error("FATAL: OPENROUTER_API_KEY não carregada!")
 
-# Criação Tabelas 
+# Criação das Tabelas 
 try:
     if PAINEL_IMPORTADO:
         criar_tabela_tokens()
@@ -110,7 +105,7 @@ try:
 except Exception as e:
     logging.error(f"Erro ao criar tabelas: {e}", exc_info=True)
 
-# --- Função Auxiliar API OpenRouter ---
+# --- Função Auxiliar para Chamada da API OpenRouter ---
 def get_ai_response(messages_to_send: list) -> str:
     """Envia mensagens para a API OpenRouter e retorna a resposta da IA."""
     if not OPENROUTER_API_KEY:
@@ -190,40 +185,27 @@ def acesso_usuario():
             return render_template("formulario_acesso.html", sucesso=False, erro="Nome e telefone são obrigatórios."), 400
         dias = 7 
         
-        # --- Modificação 2: Substituir bloco try/except na rota /acesso ---
-        token_final_sessao = None  # Guarda o token que irá para a sessão
-
-        # Bloco try/except para chamar as funções do painel
+        token_final_sessao = None
         try:
             if PAINEL_IMPORTADO:
-                # 1. Tenta INSERIR (cadastrar) novo token
                 logging.debug(f"Tentando inserir token para Tel='***{telefone[-4:]}'")
                 token_gerado = inserir_token(nome=nome, telefone=telefone, dias_validade=dias)
-
                 if token_gerado:
-                    # Sucesso na inserção (novo usuário)
                     token_final_sessao = token_gerado
                     logging.info(f"Novo Acesso OK: N='{nome}', T='***{telefone[-4:]}', Token='{token_final_sessao[:8]}...'")
                 else:
-                    # Inserção falhou (provavelmente telefone duplicado)
                     logging.warning(f"Falha ao inserir token N='{nome}', T='***{telefone[-4:]}'. Buscando token ativo...")
-                    # 2. Tenta BUSCAR token ativo existente para o telefone
                     token_existente = buscar_token_ativo_por_telefone(telefone_a_buscar=telefone)
-
                     if token_existente:
-                        # Sucesso na busca (usuário existente com token ativo) -> LOGIN
                         token_final_sessao = token_existente
                         logging.info(f"Re-Acesso OK (token existente): T='***{telefone[-4:]}', Token='{token_final_sessao[:8]}...'")
                     else:
-                        # Falha na busca (tel existe mas token inativo/expirado/erro)
                         logging.warning(f"Nenhum token ativo para T='***{telefone[-4:]}' após falha inserção.")
                         return render_template("formulario_acesso.html", sucesso=False, erro="Seu telefone já está cadastrado, mas o acesso está inativo ou expirou. Contate o suporte."), 400
             else:
-                # Se PAINEL_IMPORTADO for False (usando placeholders)
                 logging.warning("Simulando login (painel não importado).")
                 token_final_sessao = f"fake_login_{nome}_{telefone[-4:]}"
             
-            # 3. Se temos um token (novo ou existente), salva na sessão e redireciona
             if token_final_sessao:
                 session['acesso_concluido'] = True
                 session['user_token'] = token_final_sessao 
@@ -236,7 +218,6 @@ def acesso_usuario():
             logging.error(f"Erro crítico acesso/login N='{nome}', T='***{telefone[-4:]}': {e}", exc_info=True)
             return render_template("formulario_acesso.html", sucesso=False, erro="Erro interno. Tente mais tarde."), 500
 
-    # Bloco GET permanece inalterado:
     if session.get('acesso_concluido') and session.get('user_token'):
         return redirect(url_for('dra_ana_route'))
     else:
@@ -263,11 +244,11 @@ def dra_ana_route():
             return redirect(url_for('instalar'))
     logging.debug(f"Acesso permitido a /dra-ana para token {user_token[:8]}...")
     
-    # --- Modificação para carregar o histórico do chat ---
+    # Correção: Chama get_chat_history com parâmetro posicional
     chat_history = []
     if PAINEL_IMPORTADO:
         try:
-            chat_history = get_chat_history(user_token, lim=20)
+            chat_history = get_chat_history(user_token, 20)
         except Exception as e:
             logging.error("Erro ao carregar histórico do chat para token {}: {}".format(user_token[:8], e))
     
@@ -304,9 +285,11 @@ def chat_endpoint():
             add_chat_message(user_token, 'user', user_message)
         else:
             logging.warning("Placeholder: Não salvando msg user.")
+        
+        # Correção: Usa chamada posicional para get_chat_history
         chat_history = []
         if PAINEL_IMPORTADO:
-            chat_history = get_chat_history(user_token, limit=20)
+            chat_history = get_chat_history(user_token, 20)
         else:
             logging.warning("Placeholder: Não buscando histórico.")
         messages_to_send = [{"role": "system", "content": SYSTEM_PROMPT}] + chat_history
@@ -335,11 +318,8 @@ def chat_endpoint():
 @app.route("/login", methods=["GET", "POST"]) 
 def login():
     """Página de login do painel admin."""
-    # Adiciona render_template para GET
     if request.method == 'GET':
-        return render_template('login.html')  # Supõe que existe um login.html
-
-    # Lógica POST continua a mesma
+        return render_template('login.html')
     senha_digitada = request.form.get("senha")
     senha_painel = os.getenv("PAINEL_SENHA")
     if not senha_painel:
@@ -371,12 +351,9 @@ def painel():
     """Página principal do painel admin."""
     if not session.get("autenticado"):
         return redirect(url_for("login"))
-
     token_gerado_str = None 
     erro_painel = "" 
-
     if request.method == "POST":
-        # Lógica POST para criar token (já ajustada)
         nome_novo_token = request.form.get("nome")
         telefone_novo_token = request.form.get("telefone")
         dias_str = request.form.get("dias_validade", '7') 
@@ -401,9 +378,7 @@ def painel():
             except Exception as e:
                 logging.exception("Erro inesperado ao gerar token pelo painel.")
                 flash("Erro inesperado no servidor ao gerar token.", "danger")
-        return redirect(url_for('painel'))  # Redireciona após POST
-
-    # Lógica GET (busca tokens sempre)
+        return redirect(url_for('painel'))
     tokens = []
     try:
         if PAINEL_IMPORTADO:
@@ -413,14 +388,12 @@ def painel():
     except Exception as e:
         logging.exception("Erro ao listar tokens para o painel.")
         erro_painel = "Erro ao buscar lista de tokens."
-
     now_tz = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
     if PYTZ_IMPORTADO:
         try: 
             now_tz = datetime.now(timezone("America/Sao_Paulo")).strftime('%Y-%m-%d %H:%M:%S %Z%z')
         except Exception as e: 
             logging.warning(f"Erro timezone: {e}. Usando UTC.")
-
     return render_template("painel.html",
                            tokens=tokens, 
                            now=now_tz,
@@ -497,7 +470,6 @@ def resetar_acesso():
     logging.info("Sessão de acesso resetada a pedido.")
     return "Sessão de acesso resetada. <a href='/'>Voltar ao início</a>"
 
-# Bloco main 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() in ['true', '1', 't']
