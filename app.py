@@ -1,11 +1,11 @@
-# app.py (VERSÃO COMPLETA - CORREÇÃO com Modificações)
+# app.py (VERSÃO COMPLETA - COM SESSÃO PERMANENTE)
 
 import os
 import requests
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash 
 from dotenv import load_dotenv
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 # Configuração de Logging 
@@ -73,6 +73,7 @@ except ImportError:
 # Configuração do App Flask 
 app = Flask(__name__)
 app.secret_key = os.getenv("PAINEL_SENHA", "configure-uma-chave-secreta-forte-no-env")
+app.permanent_session_lifetime = timedelta(days=30)  # Sessão permanente por 30 dias
 if app.secret_key == "configure-uma-chave-secreta-forte-no-env":
     logging.warning("PAINEL_SENHA não definida!")
 
@@ -206,13 +207,11 @@ def acesso_usuario():
                 logging.warning("Simulando login (painel não importado).")
                 token_final_sessao = f"fake_login_{nome}_{telefone[-4:]}"
             
-            if token_final_sessao:
-                session['acesso_concluido'] = True
-                session['user_token'] = token_final_sessao 
-                return redirect(url_for('dra_ana_route'))
-            else:
-                logging.error(f"Erro inesperado no fluxo acesso/login T='***{telefone[-4:]}'")
-                return render_template("formulario_acesso.html", sucesso=False, erro="Erro inesperado no acesso."), 500
+            # Marcar a sessão como permanente para que o token persista após fechar o app.
+            session.permanent = True
+            session['acesso_concluido'] = True
+            session['user_token'] = token_final_sessao 
+            return redirect(url_for('dra_ana_route'))
 
         except Exception as e:
             logging.error(f"Erro crítico acesso/login N='{nome}', T='***{telefone[-4:]}': {e}", exc_info=True)
@@ -244,7 +243,7 @@ def dra_ana_route():
             return redirect(url_for('instalar'))
     logging.debug(f"Acesso permitido a /dra-ana para token {user_token[:8]}...")
     
-    # Correção: Chama get_chat_history com parâmetro posicional
+    # Chamada à função get_chat_history usando parâmetro posicional
     chat_history = []
     if PAINEL_IMPORTADO:
         try:
@@ -286,7 +285,6 @@ def chat_endpoint():
         else:
             logging.warning("Placeholder: Não salvando msg user.")
         
-        # Correção: Usa chamada posicional para get_chat_history
         chat_history = []
         if PAINEL_IMPORTADO:
             chat_history = get_chat_history(user_token, 20)
